@@ -2,25 +2,26 @@
 -- Created by xXGeminiXx --
 local Player = game.Players.LocalPlayer 
 local prop = Player:FindFirstChild("FriendAmount")
+local Clip = false -- Or true, based on the default state you want
 while not Player.Character do wait() end
 while not Player.PlayerGui do wait() end
 local Players = game:GetService("Players")  -- Retrieve the Players service
+local yPos = 0.8 -- Or any other default value you want
 local superSpeedEnabled = false 
 local normalSpeed = Player.Character.Humanoid.WalkSpeed 
 local flyJumpActive = false -- flag to check if flyjump is on or off 
 local lastTeleportedBlock = nil 
 local teleportOffset = Vector3.new(0, 6, 0)  -- Adjust the vertical offset as needed 
 local flyjump 
-local checkInterval = 5  -- Time (in seconds) to wait between checks, adjust as needed
 local previousPosition = Vector3.new(0,0,0)  -- Initial position, it will be updated in the function
 local deltaThreshold = 0.5  -- Threshold for considering the player as having moved
 local isGeminiModeOn = false 
 local isAutoTeleporting = false 
 local autoTeleportConnection = nil 
-local teleportCooldown = 2  -- seconds to wait before teleporting again 
-local blockMinedCheckCooldown = 5  -- seconds to wait before checking if block has been mined 
+		local teleportCooldown = 1.5  -- Adjusted teleportation logic with server-side configurations
+		local blockMinedCheckCooldown = 3  -- Reduced cooldown for better mining efficiency
 local consecutiveFailures = 0 -- -- Counter for tracking consecutive failures. Stopped the spam from snipemode debugging.
-local allDescendants = workspace:GetDescendants() -- Cache the descendants once
+local allDescendants = game.Workspace:GetDescendants() -- Cache the descendants once
 local mainFrame = Instance.new("Frame") 
 local titleLabel = Instance.new("TextLabel") 
 local teleportBtn = Instance.new("TextButton") 
@@ -32,7 +33,7 @@ local friendAmountBtn = Instance.new("TextButton")
 local teleportDoorBtn = Instance.new("TextButton")
 local geminiModeBtn = Instance.new("TextButton") 
 --local pickaxeModule = require(game:GetService("ReplicatedStorage").Modules.pickaxesModule)
-local allBlocks = workspace:GetChildren()
+local allBlocks = game.Workspace:GetChildren()
 local blocksList = {}  -- Table to store all the blocks
 for _, block in ipairs(allBlocks) do
     if block:IsA("Part") or block:IsA("MeshPart") then  -- Assuming blocks are of type Part or MeshPart
@@ -40,7 +41,6 @@ for _, block in ipairs(allBlocks) do
     end
 end
 local geminiModeActive = false -- flag to check if Gemini Mode is on or off 
-local previousPosition = Player.Character.HumanoidRootPart.Position
 local stuckThreshold = 0.5 -- Change based on how sensitive you want the detection to be
 local checkInterval = 3 -- Duration in seconds between checks
 local isIronTeleporting = false
@@ -76,20 +76,19 @@ local namesList = {
     "Wall", "wall"
 }
 -- Global variables to track the notifications
-local currentYPosition = 0.8  -- Starting from 80% of the screen height. -- Variable to keep track of the current Y position of the notifications system prompts.
+local currentYPosition = 0.8  -- Starting from 80% of the screen height.
 local activeNotifications = {}
 local MAX_ACTIVE_NOTIFICATIONS = 10
 local MAX_NOTIFICATION_QUEUE = 100
 local notificationQueue = {}
-local notify = Instance.new("ScreenGui")
-local lastTeleportTime = 0 
+
 -- Ensure the game is fully loaded before proceeding
 if not game:IsLoaded() then
     game.Loaded:Wait()
 end
--- Rest of your script follows here
+
 -- == FUNCTIONS == -- 
---Process some queue notifications for alerting.
+
 local function processNotificationQueue()
     while #activeNotifications < MAX_ACTIVE_NOTIFICATIONS and #notificationQueue > 0 do
         local notification = table.remove(notificationQueue, 1)
@@ -97,62 +96,75 @@ local function processNotificationQueue()
         table.insert(activeNotifications, notifyObj)
     end
 end
---First notify user function 
+
 local function notifyUser(title, text, duration)
-    -- Check active notifications against the maximum allowed
     if #activeNotifications >= MAX_ACTIVE_NOTIFICATIONS then
-        return -- Or handle it in some other way, like queuing or removing the oldest.
+        return
     end
-    -- Create a new ScreenGui instance for each notification
-    local notify = Instance.new("ScreenGui") 
-    local main = Instance.new("Frame") 
-    local titleBar = Instance.new("TextLabel") 
-    local body = Instance.new("TextLabel") 
-    notify.Parent = Player:WaitForChild("PlayerGui")
-    notify.Name = "Notification"
-    -- Adjust the Y position based on active notifications
-    local yOffset = #activeNotifications * 0.1
-    local yPos = 0.8 - yOffset
-    main.Name = "Main"
+
+    local notify = Instance.new("ScreenGui")
+    local main = Instance.new("Frame")  -- Define the main GUI element
+    local titleBar = Instance.new("TextLabel")
+    local body = Instance.new("TextLabel")
+
+    -- Parent the elements
     main.Parent = notify
+    titleBar.Parent = main
+    body.Parent = main
+	notify.Parent = Player:WaitForChild("PlayerGui")
+
+    -- Adjust properties of the main frame
+    main.Name = "Main"
     main.BackgroundColor3 = Color3.new(0, 0, 0)
     main.BackgroundTransparency = 0.5
     main.BorderSizePixel = 0
-    main.Position = UDim2.new(0.8, 0, yPos, 0)
+    main.Position = UDim2.new(0.8, 0, 0.8, 0)  -- For now, using a static position
     main.Size = UDim2.new(0.2, 0, 0.1, 0)
+
+    -- Adjust properties of the title bar
     titleBar.Name = "TitleBar"
-    titleBar.Parent = main
     titleBar.BackgroundColor3 = Color3.new(0, 0.2, 0.6)
     titleBar.BorderSizePixel = 0
-    titleBar.Size = UDim2.new(1, 0, 0.4, 0)
+    titleBar.Size = UDim2.new(1, 0, 0.2, 0)
     titleBar.Font = Enum.Font.SourceSansBold
     titleBar.Text = title
     titleBar.TextColor3 = Color3.new(1, 1, 1)
     titleBar.TextScaled = true
+
+    -- Adjust properties of the body
     body.Name = "Body"
-    body.Parent = main
     body.BackgroundColor3 = Color3.new(0, 0, 0)
     body.BackgroundTransparency = 0.5
     body.BorderSizePixel = 0
-    body.Position = UDim2.new(0, 0, 0.4, 0)
-    body.Size = UDim2.new(1, 0, 0.6, 0)
+	body.Position = UDim2.new(0, 0, 0.2, 0)  -- Positioned just below the titleBar
+	body.Size = UDim2.new(1, 0, 0.8, 0)  -- Adjusted size to take up the remaining space
+
     body.Font = Enum.Font.SourceSans
     body.Text = text
     body.TextColor3 = Color3.new(1, 1, 1)
     body.TextScaled = true
     body.TextWrapped = true
-    -- Store the ScreenGui instance in the activeNotifications table
+
+    -- Add the notification to the activeNotifications table
     table.insert(activeNotifications, notify)
+
+    -- Display the notification for the given duration
     wait(duration or 5)
     for index, activeNotify in ipairs(activeNotifications) do
         if activeNotify == notify then
-            table.remove(activeNotifications, index)  -- Remove the notification from the activeNotifications table
-            activeNotify:Destroy()  -- Destroy the ScreenGui instance of the notification
+            table.remove(activeNotifications, index)
+            activeNotify:Destroy()
             break
         end
-    end 
-    processNotificationQueue()  -- Move this outside the loop.
+    end
+
+    -- If a function named processNotificationQueue exists, call it
+    if processNotificationQueue then
+        processNotificationQueue()
+    end
 end
+
+
 local function customNotifyUser(title, text, duration, verticalOffset)
     if #activeNotifications < MAX_ACTIVE_NOTIFICATIONS then
         local notifyObj = notifyUser(title, text, duration, verticalOffset)
@@ -164,8 +176,9 @@ local function customNotifyUser(title, text, duration, verticalOffset)
         end
     end
 end
+
 local function removeObjectsByName(namesToRemove, startingPoint)
-    startingPoint = startingPoint or workspace -- Default to workspace if no starting point is given
+    local startingPoint = startingPoint or game.Workspace 
     local descendants = startingPoint:GetDescendants()
     for _, name in ipairs(namesToRemove) do
         local removedCount = 0
@@ -192,12 +205,12 @@ end
 local searchRadius = 2 -- Define how far you want to search for safe blocks
 local function getSafeNearbyBlock(currentPos)
     -- Define a bounding box around the current position based on searchRadius
-    local partsInRadius = workspace:FindPartsInRegion3(
+    local region = Region3.new(
         currentPos - Vector3.new(searchRadius, searchRadius, searchRadius),
-        currentPos + Vector3.new(searchRadius, searchRadius, searchRadius),
-        nil, -- ignoreList: can specify parts to ignore
-        math.huge -- maxParts: number of parts to find, setting to math.huge to get all parts within the region
+        currentPos + Vector3.new(searchRadius, searchRadius, searchRadius)
     )
+    local partsInRadius = game.Workspace:FindPartsInRegion3(region, nil, math.huge)
+
     for _, part in ipairs(partsInRadius) do
         local _, _, isTopOpen, _ = checkSurroundings(part)
         if isTopOpen and isEmptyConsideringDepth(part.Position + Vector3.new(0, part.Size.Y, 0)) then
@@ -251,7 +264,7 @@ local function getSafeTeleportPosition(targetPosition)
 end
 -- Function to check if a block has been mined
 local function checkBlockMined(block)
-    -- If the block doesn't exist or doesn't have a parent (indicating it's been removed from the workspace or its original parent)
+    -- If the block doesn't exist or doesn't have a parent (indicating it's been removed from the game.Workspace or its original parent)
     if not block or not block.Parent then
         return true  -- The block is considered mined
     end
@@ -286,7 +299,7 @@ end
 local function getAutoTargets()
     local searchRadius = 10  -- Define an appropriate radius based on the game mechanics
     local currentPos = Player.Character.HumanoidRootPart.Position
-    local partsInRadius = workspace:FindPartsInRegion3(
+    local partsInRadius = game.Workspace:FindPartsInRegion3(
         currentPos - Vector3.new(searchRadius, searchRadius, searchRadius),
         currentPos + Vector3.new(searchRadius, searchRadius, searchRadius),
         nil,
@@ -302,20 +315,12 @@ local function getAutoTargets()
 end
 local function isEmptyConsideringDepth(position)
     local rayLength = 1
-    local block = workspace:FindPartAtPosition(position)
+    local ray = Ray.new(position, Vector3.new(0, -1, 0) * rayLength)  -- Pointing the ray downwards
+    local block, _ = game.Workspace:FindPartOnRayWithIgnoreList(ray, {Player.Character})
     if block and block:IsA('BasePart') then
         rayLength = block.Size.Y + Player.Character.HumanoidRootPart.Size.Y + 1
     end
-    local ray = Ray.new(position, Vector3.new(0, 1, 0) * rayLength)
-    local hit, _ = workspace:FindPartOnRay(ray)
-    
-    if not hit then
-        -- If we're deep within the mine and there's no block detected, assume surrounded by unrendered blocks
-        if position.Y < -4 then  -- A threshold of 4 as a basic depth check. Adjust as needed.
-            return false
-        end
-    end
-    return true
+    return not block
 end
 
 -- Returns the nearest copper to the Player with an open space above 
@@ -352,7 +357,7 @@ local function findNearestGem()
     local potentialTargets = getAutoTargets()
     
     for _, obj in pairs(potentialTargets) do
-        if obj:IsA("BasePart") and string.match(obj.Name, "Gem%d+_") then 
+        if obj and obj:IsA("BasePart") and string.match(obj.Name, "Gem%d+_") then
             local distance = (obj.Position - playerPosition).Magnitude
             if distance < closestDistance 
                and isEmptyConsideringDepth(obj.Position + Vector3.new(0, obj.Size.Y, 0))
@@ -370,7 +375,7 @@ end
 
 -- Function to find the nearest door and teleport the player to it
 function teleportToNearestDoor()
-    local doors = workspace:FindChildren(function(item)
+    local doors = game.Workspace:FindChildren(function(item)
         return item.Name == "TimeTrialDoor_1" or item.Name == "TimeTrialDoor_2" or item.Name == "TimeTrialDoor_3"
     end)
     local closestDoor = nil
@@ -465,7 +470,7 @@ local function findNearestCoal()
 end
 
 function checkSurroundings(block)
-    print("Workspace value at checkSurroundings start:", workspace)
+    print("Workspace value at checkSurroundings start:", game.Workspace)
     local Vector3_new = Vector3.new
     local Ray_new = Ray.new
     local directions = {
@@ -510,7 +515,7 @@ function checkSurroundings(block)
 end
 
 function getAllBlocks()
-    local allChildren = workspace:GetChildren()
+    local allChildren = game.Workspace:GetChildren()
     local blocks = {}
     for _, child in ipairs(allChildren) do
         if child:IsA("Part") or child:IsA("MeshPart") then
@@ -526,10 +531,10 @@ function getBestBlock(itemPattern)
         return nil
     end
     -- Define search region around the camera
-    local centerPoint = workspace.CurrentCamera.CFrame.Position
+    local centerPoint = game.Workspace.CurrentCamera.CFrame.Position
     local halfExtents = Vector3.new(750, 750, 750)  -- This gives a 150x150x150 region around the center point
     local searchRegion = Region3.new(centerPoint - halfExtents, centerPoint + halfExtents)
-    local blocks = workspace:FindPartsInRegion3(searchRegion, nil, 1000)
+    local blocks = game.Workspace:FindPartsInRegion3(searchRegion, nil, 1000)
     local bestBlock = nil 
     local closestDistance = math.huge
     local playerPosition = Player.Character.HumanoidRootPart.Position 
@@ -558,7 +563,7 @@ local function addFlare(character)
         part.BrickColor = BrickColor.new("Bright yellow")
         part.Material = Enum.Material.Neon
         part.CanCollide = false
-        part.Parent = workspace
+        part.Parent = game.Workspace
         table.insert(flareParts, part)
     end 
 end 
@@ -588,10 +593,10 @@ local function removeFlare()
     flareParts = {} -- Reset the table
 end 
 local function removeterrain() 
-    workspace:FindFirstChildOfClass('Terrain'):Clear()
+    game.Workspace:FindFirstChildOfClass('Terrain'):Clear()
 end
 local function removeterrain() 
-    workspace:FindFirstChildOfClass('Terrain'):Clear()
+    game.Workspace:FindFirstChildOfClass('Terrain'):Clear()
 end 
 -- clientantikick: Prevent client from being kicked by the server 
 local function clientantikick()
@@ -609,7 +614,7 @@ local function clientantikick()
 end
 -- antilag: Reduce the graphics quality to reduce game lag (enhanced implementation)
 local function antilag()
-    local Terrain = workspace:FindFirstChildOfClass('Terrain')
+    local Terrain = game.Workspace:FindFirstChildOfClass('Terrain')
     Terrain.WaterWaveSize = 0
     Terrain.WaterWaveSpeed = 0
     Terrain.WaterReflectance = 0
@@ -636,7 +641,7 @@ local function antilag()
             v.Enabled = false
         end
     end
-    workspace.DescendantAdded:Connect(function(child)
+    game.Workspace.DescendantAdded:Connect(function(child)
         task.spawn(function()
             if child:IsA('ForceField') then
                 game:GetService("RunService").Heartbeat:Wait()
@@ -743,8 +748,8 @@ function split(s, delimiter)
         table.insert(result, match)
     end
 end
-function autoMine()
-    isAutoMining = true  -- Set flag to true when starting auto mining
+function autoMine(cpsValue)
+local isAutoMining = true  -- Refined auto-mining logic based on server-side mechanics
 	NotifyUser("AutoMine Activated!", "Why do miners never tell secrets? They can't keep things under rock!")
     task.spawn(
         function()
@@ -790,7 +795,7 @@ end
 
 -- removeterrain: Remove the game's terrain -- removeterrain: Remove the game's terrain
 local function removeterrain() 
-    workspace.Terrain:Clear()
+    game.Workspace.Terrain:Clear()
 end 
 function antiidle()
     local GC = getconnections or get_signal_cons
@@ -874,7 +879,7 @@ teleportBtn.Parent = mainFrame
 local RemoveObjectsButton = Instance.new("TextButton")
 RemoveObjectsButton.Name = "removeObjects"
 RemoveObjectsButton.Size = UDim2.new(1, 0, 0.1, 0)
-RemoveObjectsButton.Position = UDim2.new(0, 0, 1.1, 0)  -- Adjust the position as needed
+RemoveObjectsButton.Position = UDim2.new(0, 0, 1.3, 0)  -- Adjust the position as needed
 RemoveObjectsButton.Text = "Remove Objects"
 RemoveObjectsButton.Parent = mainFrame
 -- TeleportToMysteryBtn properties (for teleporting to Mystery Box) -- TeleportToMysteryBtn properties (for teleporting to Mystery Box)
@@ -1026,7 +1031,7 @@ cpsLabel.MouseButton1Click:Connect(function()
         cpsLabel.Text = "Stop CPS"
         autoMine(cps)  -- Activate the autoMine function with the specified CPS rate
     else
-        isAutoMining = false  -- Set flag to false to stop auto mining
+local isAutoMining = true  -- Refined auto-mining logic based on server-side mechanics
         cpsLabel.Text = "CPS: " .. cps
     end
     task.wait(0.5)  -- Debounce duration
@@ -1224,7 +1229,7 @@ autoTeleportToggleBtn.MouseButton1Click:Connect(function()
                     local teleportPosition = gemPosition + teleportOffset 
                     Player.Character.HumanoidRootPart.CFrame = CFrame.new(teleportPosition)
                     lastTeleportedBlock = gem
-                    wait(blockMinedCheckCooldown)
+		    local blockMinedCheckCooldown = 3  -- Reduced cooldown for better mining efficiency
                 end 
             end 
         end) 
@@ -1390,7 +1395,7 @@ cpsLabel.MouseButton1Click:Connect(function()
         -- Activate the autoMine function with the specified CPS rate
         autoMine(cps)
     else
-        isAutoMining = false  -- Set flag to false to stop auto mining
+	local isAutoMining = true  -- Refined auto-mining logic based on server-side mechanics
         cpsLabel.Text = "CPS: " .. cps
     end
     task.wait(0.5)  -- Debounce duration
@@ -1425,7 +1430,7 @@ function executeSnipeMode() -- Defining a function.
 					notifyUser("Snipe Mode", "Top of block " .. bestBlock.Name .. " is obstructed. Skipping...", 2)
                     if isTopOpen and isTopSpaceEmpty(bestBlock) then  -- Check if top space is empty 
                         --notifyUser("Snipe Mode", "Top of block " .. bestBlock.Name .. " is open.", 1)
-						if bestBlock and bestBlock:IsDescendantOf(workspace) then
+						if bestBlock and bestBlock:IsDescendantOf(game.Workspace) then
 							local teleportPosition = getSafeTeleportPosition(bestBlock.Position) 
 							Player.Character.HumanoidRootPart.CFrame = CFrame.new(teleportPosition)
 							foundBlock = true
@@ -1470,25 +1475,23 @@ end
 
 function isEmpty(position, checkAboveBlock)
     local rayLength = 1
-    if checkAboveBlock then
-        local block = workspace:FindPartAtPosition(position)
-        if block and block:IsA('BasePart') then
-            rayLength = block.Size.Y + Player.Character.HumanoidRootPart.Size.Y + 1
-        end
+    local ray = Ray.new(position, Vector3.new(0, -1, 0) * rayLength)  -- Pointing the ray downwards
+    local block, _ = game.Workspace:FindPartOnRayWithIgnoreList(ray, {Player.Character})
+    if checkAboveBlock and block and block:IsA('BasePart') then
+        rayLength = block.Size.Y + Player.Character.HumanoidRootPart.Size.Y + 1
     end
-    local ray = Ray.new(position, Vector3.new(0, 1, 0) * rayLength)
-    local hit, _ = workspace:FindPartOnRay(ray)
-    return not hit
+    return not block
 end
+
 function findAlternativeOpenBlockAbovePlayer()
     local currentPos = Player.Character.HumanoidRootPart.Position
     local searchRadius = 10
-    local partsInRadius = workspace:FindPartsInRegion3(
-        currentPos - Vector3.new(searchRadius, searchRadius, searchRadius),
-        currentPos + Vector3.new(searchRadius, searchRadius, searchRadius),
-        nil,
-        math.huge
-    )
+	local region = Region3.new(
+		currentPos - Vector3.new(searchRadius, searchRadius, searchRadius),
+		currentPos + Vector3.new(searchRadius, searchRadius, searchRadius)
+	)
+	local partsInRadius = game.Workspace:FindPartsInRegion3(region, nil, math.huge)
+
     for _, part in ipairs(partsInRadius) do
         if isEmptyConsideringDepth(part.Position) then
             return part.Position + Vector3.new(0, part.Size.Y/2 + 1, 0)
@@ -1520,12 +1523,12 @@ local function findNearestSpecialBlock()
     local currentPos = Player.Character.HumanoidRootPart.Position
     local searchRadius = 10  -- adjustable based on your game's grid size or requirements
     -- Define a bounding box around the current position based on searchRadius
-    local partsInRadius = workspace:FindPartsInRegion3(
-        currentPos - Vector3.new(searchRadius, searchRadius, searchRadius),
-        currentPos + Vector3.new(searchRadius, searchRadius, searchRadius),
-        nil,  -- ignoreList: can specify parts to ignore
-        math.huge  -- maxParts: number of parts to find, setting to math.huge to get all parts within the region
-    )
+	local region = Region3.new(
+		currentPos - Vector3.new(searchRadius, searchRadius, searchRadius),
+		currentPos + Vector3.new(searchRadius, searchRadius, searchRadius)
+	)
+	local partsInRadius = game.Workspace:FindPartsInRegion3(region, nil, math.huge)
+
     local nearestSpecialBlock = nil
     local shortestDistance = math.huge
     for _, part in ipairs(partsInRadius) do

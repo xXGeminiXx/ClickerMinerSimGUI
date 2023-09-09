@@ -55,7 +55,7 @@ local function createOptionHolder(holderTitle, parent, parentTable, subHolder)
     parentTable.main = InstanceNew("ImageButton", {
         LayoutOrder = subHolder and parentTable.position or 0,
         Position = UDim2.new(0, 20 + (250 * (parentTable.position or 0)), 0, 20),
-        Size = UDim2.new(0, 230, 0, size),
+        Size = UDim2.new(0, 280, 0, size),
         BackgroundTransparency = 1,
         Image = "rbxassetid://3570695787",
         ImageColor3 = Color3.fromRGB(20, 20, 20),
@@ -119,7 +119,7 @@ local function createOptionHolder(holderTitle, parent, parentTable, subHolder)
     })
     layout.Changed:connect(function()
         parentTable.content.Size = UDim2.new(1, 0, 0, layout.AbsoluteContentSize.Y)
-        parentTable.main.Size = #parentTable.options > 0 and parentTable.open and UDim2.new(0, 230, 0, layout.AbsoluteContentSize.Y + size) or UDim2.new(0, 230, 0, size)
+        parentTable.main.Size = #parentTable.options > 0 and parentTable.open and UDim2.new(0, 280, 0, layout.AbsoluteContentSize.Y + size) or UDim2.new(0, 280, 0, size)
     end)
     if not subHolder then
         InstanceNew("UIPadding", {
@@ -153,7 +153,7 @@ local function createOptionHolder(holderTitle, parent, parentTable, subHolder)
             else
                 tweenService:Create(round, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {ImageColor3 = parentTable.open and Color3.fromRGB(10, 10, 10) or Color3.fromRGB(6, 6, 6)}):Play()
             end
-            parentTable.main:TweenSize(#parentTable.options > 0 and parentTable.open and UDim2.new(0, 230, 0, layout.AbsoluteContentSize.Y + size) or UDim2.new(0, 230, 0, size), "Out", "Quad", 0.2, true)
+            parentTable.main:TweenSize(#parentTable.options > 0 and parentTable.open and UDim2.new(0, 280, 0, layout.AbsoluteContentSize.Y + size) or UDim2.new(0, 280, 0, size), "Out", "Quad", 0.2, true)
         end
     end)
     function parentTable:SetTitle(newTitle)

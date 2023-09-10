@@ -180,17 +180,41 @@ local function createLabel(option, parent)
     end})
 end
 function createToggle(option, parent)
-    local main = InstanceNew("TextLabel", {
+    local main = Instance.new("TextLabel", {
         LayoutOrder = option.position,
         Size = UDim2.new(1, 0, 0, 31),
         BackgroundTransparency = 1,
         Text = " " .. option.text,
-        TextSize = 17,
+        TextSize = option.textSize or 17, -- Use custom text size if provided, otherwise use 17 as default
         Font = Enum.Font.Gotham,
         TextColor3 = Color3.fromRGB(255, 255, 255),
         TextXAlignment = Enum.TextXAlignment.Left,
         Parent = parent.content
     })
+    local toggleButton = Instance.new("TextButton", {
+        Size = UDim2.new(0, 20, 0, 20),
+        Position = UDim2.new(1, -30, 0.5, -10),
+        AnchorPoint = Vector2.new(1, 0.5),
+        BackgroundTransparency = 0,
+        BackgroundColor3 = Color3.fromRGB(30, 30, 30),
+        Text = "",
+        Parent = main
+    })
+    local toggleIndicator = Instance.new("Frame", {
+        Size = UDim2.new(0, 16, 0, 16),
+        Position = UDim2.new(0.5, -8, 0.5, -8),
+        AnchorPoint = Vector2.new(0.5, 0.5),
+        BackgroundTransparency = 0,
+        BackgroundColor3 = option.state and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 0, 0),
+        Parent = toggleButton
+    })
+    
+    toggleButton.MouseButton1Click:Connect(function()
+        option.state = not option.state
+        toggleIndicator.BackgroundColor3 = option.state and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 0, 0)
+        option.callback(option.state)
+    end)
+end
     local tickboxOutline = InstanceNew("ImageLabel", {
         Position = UDim2.new(1, -6, 0, 4),
         Size = UDim2.new(-1, 10, 1, -10),

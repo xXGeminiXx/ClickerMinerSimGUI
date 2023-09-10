@@ -277,6 +277,7 @@ function createToggle(option, parent)
     if not option.nopanic then
         library.objects.toggles[#library.objects.toggles + 1] = option
     end
+	option.main = main
     setmetatable(option, {__newindex = function(t, i, v)
         if i == "Text" then
             main.Text = " " .. tostring(v)

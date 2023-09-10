@@ -55,7 +55,7 @@ local function createOptionHolder(holderTitle, parent, parentTable, subHolder)
     parentTable.main = InstanceNew("ImageButton", {
         LayoutOrder = subHolder and parentTable.position or 0,
         Position = UDim2.new(0, 20 + (250 * (parentTable.position or 0)), 0, 20),
-        Size = UDim2.new(0, 280, 0, size),
+        Size = UDim2.new(0, 230, 0, size),
         BackgroundTransparency = 1,
         Image = "rbxassetid://3570695787",
         ImageColor3 = Color3.fromRGB(20, 20, 20),
@@ -119,7 +119,7 @@ local function createOptionHolder(holderTitle, parent, parentTable, subHolder)
     })
     layout.Changed:connect(function()
         parentTable.content.Size = UDim2.new(1, 0, 0, layout.AbsoluteContentSize.Y)
-        parentTable.main.Size = #parentTable.options > 0 and parentTable.open and UDim2.new(0, 280, 0, layout.AbsoluteContentSize.Y + size) or UDim2.new(0, 280, 0, size)
+        parentTable.main.Size = #parentTable.options > 0 and parentTable.open and UDim2.new(0, 230, 0, layout.AbsoluteContentSize.Y + size) or UDim2.new(0, 230, 0, size)
     end)
     if not subHolder then
         InstanceNew("UIPadding", {
@@ -153,7 +153,7 @@ local function createOptionHolder(holderTitle, parent, parentTable, subHolder)
             else
                 tweenService:Create(round, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {ImageColor3 = parentTable.open and Color3.fromRGB(10, 10, 10) or Color3.fromRGB(6, 6, 6)}):Play()
             end
-            parentTable.main:TweenSize(#parentTable.options > 0 and parentTable.open and UDim2.new(0, 280, 0, layout.AbsoluteContentSize.Y + size) or UDim2.new(0, 280, 0, size), "Out", "Quad", 0.2, true)
+            parentTable.main:TweenSize(#parentTable.options > 0 and parentTable.open and UDim2.new(0, 230, 0, layout.AbsoluteContentSize.Y + size) or UDim2.new(0, 230, 0, size), "Out", "Quad", 0.2, true)
         end
     end)
     function parentTable:SetTitle(newTitle)
@@ -162,7 +162,7 @@ local function createOptionHolder(holderTitle, parent, parentTable, subHolder)
     return parentTable
 end
 local function createLabel(option, parent)
-    local main = InstanceNew("TextLabel", {
+    local main = Instance.new("TextLabel", parent, {
         LayoutOrder = option.position,
         Size = UDim2.new(1, 0, 0, 26),
         BackgroundTransparency = 1,
@@ -171,7 +171,6 @@ local function createLabel(option, parent)
         Font = Enum.Font.Gotham,
         TextColor3 = Color3.fromRGB(255, 255, 255),
         TextXAlignment = Enum.TextXAlignment.Left,
-        Parent = parent.content
     })
     setmetatable(option, {__newindex = function(t, i, v)
         if i == "Text" then
@@ -179,8 +178,9 @@ local function createLabel(option, parent)
         end
     end})
 end
+
 function createToggle(option, parent)
-    local main = Instance.new("TextLabel", {
+    local main = Instance.new("TextLabel", parent, {
         LayoutOrder = option.position,
         Size = UDim2.new(1, 0, 0, 31),
         BackgroundTransparency = 1,
@@ -189,24 +189,21 @@ function createToggle(option, parent)
         Font = Enum.Font.Gotham,
         TextColor3 = Color3.fromRGB(255, 255, 255),
         TextXAlignment = Enum.TextXAlignment.Left,
-        Parent = parent.content
     })
-    local toggleButton = Instance.new("TextButton", {
+    local toggleButton = Instance.new("TextButton", parent, {
         Size = UDim2.new(0, 20, 0, 20),
         Position = UDim2.new(1, -30, 0.5, -10),
         AnchorPoint = Vector2.new(1, 0.5),
         BackgroundTransparency = 0,
         BackgroundColor3 = Color3.fromRGB(30, 30, 30),
         Text = "",
-        Parent = main
     })
-    local toggleIndicator = Instance.new("Frame", {
+    local toggleIndicator = Instance.new("Frame", toggleButton, {
         Size = UDim2.new(0, 16, 0, 16),
         Position = UDim2.new(0.5, -8, 0.5, -8),
         AnchorPoint = Vector2.new(0.5, 0.5),
         BackgroundTransparency = 0,
         BackgroundColor3 = option.state and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 0, 0),
-        Parent = toggleButton
     })
     
     toggleButton.MouseButton1Click:Connect(function()
@@ -215,36 +212,36 @@ function createToggle(option, parent)
         option.callback(option.state)
     end)
 end
-    local tickboxOutline = InstanceNew("ImageLabel", {
-        Position = UDim2.new(1, -6, 0, 4),
-        Size = UDim2.new(-1, 10, 1, -10),
-        SizeConstraint = Enum.SizeConstraint.RelativeYY,
-        BackgroundTransparency = 1,
-        Image = "rbxassetid://3570695787",
-        ImageColor3 = option.state and Color3.fromRGB(255, 65, 65) or Color3.fromRGB(100, 100, 100),
-        ScaleType = Enum.ScaleType.Slice,
-        SliceCenter = Rect.new(100, 100, 100, 100),
-        SliceScale = 0.02,
-        Parent = main
-    })
-    local tickboxInner = InstanceNew("ImageLabel", {
-        Position = UDim2.new(0, 2, 0, 2),
-        Size = UDim2.new(1, -4, 1, -4),
-        BackgroundTransparency = 1,
-        Image = "rbxassetid://3570695787",
-        ImageColor3 = option.state and Color3.fromRGB(255, 65, 65) or Color3.fromRGB(20, 20, 20),
-        ScaleType = Enum.ScaleType.Slice,
-        SliceCenter = Rect.new(100, 100, 100, 100),
-        SliceScale = 0.02,
-        Parent = tickboxOutline
-    })
-    local checkmarkHolder = InstanceNew("Frame", {
-        Position = UDim2.new(0, 4, 0, 4),
-        Size = option.state and UDim2.new(1, -8, 1, -8) or UDim2.new(0, 0, 1, -8),
-        BackgroundTransparency = 1,
-        ClipsDescendants = true,
-        Parent = tickboxOutline
-    })
+
+	local tickboxOutline = Instance.new("ImageLabel", parent, {
+		Position = UDim2.new(1, -6, 0, 4),
+		Size = UDim2.new(-1, 10, 1, -10),
+		SizeConstraint = Enum.SizeConstraint.RelativeYY,
+		BackgroundTransparency = 1,
+		Image = "rbxassetid://3570695787",
+		ImageColor3 = option.state and Color3.fromRGB(255, 65, 65) or Color3.fromRGB(100, 100, 100),
+		ScaleType = Enum.ScaleType.Slice,
+		SliceCenter = Rect.new(100, 100, 100, 100),
+		SliceScale = 0.02,
+	})
+
+	local tickboxInner = Instance.new("ImageLabel", parent, {
+		Position = UDim2.new(0, 2, 0, 2),
+		Size = UDim2.new(1, -4, 1, -4),
+		BackgroundTransparency = 1,
+		Image = "rbxassetid://3570695787",
+		ImageColor3 = option.state and Color3.fromRGB(255, 65, 65) or Color3.fromRGB(20, 20, 20),
+		ScaleType = Enum.ScaleType.Slice,
+		SliceCenter = Rect.new(100, 100, 100, 100),
+		SliceScale = 0.02,
+	})
+
+	local checkmarkHolder = Instance.new("Frame", parent, {
+		Position = UDim2.new(0, 4, 0, 4),
+		Size = option.state and UDim2.new(1, -8, 1, -8) or UDim2.new(0, 0, 1, -8),
+		BackgroundTransparency = 1,
+		ClipsDescendants = true,
+	})
     local checkmark = InstanceNew("ImageLabel", {
         Size = UDim2.new(1, 0, 1, 0),
         SizeConstraint = Enum.SizeConstraint.RelativeYY,

@@ -180,39 +180,38 @@ local function createLabel(option, parent)
     end})
 end
 function createToggle(option, parent)
-    local main = Instance.new("TextLabel", parent, {
-        LayoutOrder = option.position,
-        Size = UDim2.new(1, 0, 0, 31),
-        BackgroundColor3 = option.backgroundColor or Color3.fromRGB(255, 255, 255), -- Default is white
-        BorderSizePixel = option.borderSize or 0, -- Default is 0 (no border)
-        BorderColor3 = option.borderColor or Color3.fromRGB(0, 0, 0), -- Default is black
-        BackgroundTransparency = option.backgroundTransparency or 1, -- Default is fully transparent
-        Text = " " .. option.text,
-        TextSize = option.textSize or 17, -- Default is 17
-        Font = option.font or Enum.Font.Gotham, -- Default is Gotham
-        TextColor3 = option.textColor or Color3.fromRGB(255, 255, 255), -- Default is white
-        TextXAlignment = Enum.TextXAlignment.Left,
-    })
-    local tooltipFrame = Instance.new("Frame", main, {
-        Size = UDim2.new(1, 0, 0, 0), -- Start with a hidden tooltip frame
-        BackgroundTransparency = 0.8, -- Adjust transparency for the tooltip background
-        BackgroundColor3 = Color3.fromRGB(0, 0, 0), -- Customize tooltip background color
-        BorderSizePixel = 0, -- Remove tooltip border
-        ZIndex = 2, -- Ensure tooltip appears above other elements
-    })
+    local main = Instance.new("TextLabel", parent)
+    main.LayoutOrder = option.position
+    main.Size = UDim2.new(1, 0, 0, 31)
+    main.BackgroundColor3 = option.backgroundColor or Color3.fromRGB(255, 255, 255) -- Default is white
+    main.BorderSizePixel = option.borderSize or 0 -- Default is 0 (no border)
+    main.BorderColor3 = option.borderColor or Color3.fromRGB(0, 0, 0) -- Default is black
+    main.BackgroundTransparency = option.backgroundTransparency or 1 -- Default is fully transparent
+    main.Text = " " .. option.text
+    main.TextSize = option.textSize or 17 -- Default is 17
+    main.Font = option.font or Enum.Font.Gotham -- Default is Gotham
+    main.TextColor3 = option.textColor or Color3.fromRGB(255, 255, 255) -- Default is white
+    main.TextXAlignment = Enum.TextXAlignment.Left
 
-    local tooltipText = Instance.new("TextLabel", tooltipFrame, {
-        Size = UDim2.new(1, 0, 1, 0),
-        BackgroundTransparency = 1,
-        Text = option.tooltip or "", -- Use custom tooltip text if provided
-        TextSize = 14, -- Customize tooltip text size
-        Font = Enum.Font.Gotham,
-        TextColor3 = Color3.fromRGB(255, 255, 255), -- Customize tooltip text color
-        TextWrapped = true, -- Enable text wrapping for longer tooltips
-        TextXAlignment = Enum.TextXAlignment.Left,
-        TextYAlignment = Enum.TextYAlignment.Top,
-        ZIndex = 3, -- Ensure tooltip text appears above other elements
-    })
+    -- Applying the same approach for tooltipFrame, tooltipText, and other instances
+    local tooltipFrame = Instance.new("Frame", main)
+    tooltipFrame.Size = UDim2.new(1, 0, 0, 0)
+    tooltipFrame.BackgroundTransparency = 0.8
+    tooltipFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    tooltipFrame.BorderSizePixel = 0
+    tooltipFrame.ZIndex = 2
+
+    local tooltipText = Instance.new("TextLabel", tooltipFrame)
+    tooltipText.Size = UDim2.new(1, 0, 1, 0)
+    tooltipText.BackgroundTransparency = 1
+    tooltipText.Text = option.tooltip or ""
+    tooltipText.TextSize = 14
+    tooltipText.Font = Enum.Font.Gotham
+    tooltipText.TextColor3 = Color3.fromRGB(255, 255, 255)
+    tooltipText.TextWrapped = true
+    tooltipText.TextXAlignment = Enum.TextXAlignment.Left
+    tooltipText.TextYAlignment = Enum.TextYAlignment.Top
+    tooltipText.ZIndex = 3
 
     -- Show tooltip on hover
     main.MouseEnter:Connect(function()

@@ -183,14 +183,16 @@ function createToggle(option, parent)
     local main = Instance.new("TextLabel", parent, {
         LayoutOrder = option.position,
         Size = UDim2.new(1, 0, 0, 31),
-        BackgroundTransparency = 1,
+        BackgroundColor3 = option.backgroundColor or Color3.fromRGB(255, 255, 255), -- Default is white
+        BorderSizePixel = option.borderSize or 0, -- Default is 0 (no border)
+        BorderColor3 = option.borderColor or Color3.fromRGB(0, 0, 0), -- Default is black
+        BackgroundTransparency = option.backgroundTransparency or 1, -- Default is fully transparent
         Text = " " .. option.text,
-        TextSize = option.textSize or 17, -- Use custom text size if provided, otherwise use 17 as default
-        Font = Enum.Font.Gotham,
-        TextColor3 = option.textColor or Color3.fromRGB(255, 255, 255), -- Custom text color
+        TextSize = option.textSize or 17, -- Default is 17
+        Font = option.font or Enum.Font.Gotham, -- Default is Gotham
+        TextColor3 = option.textColor or Color3.fromRGB(255, 255, 255), -- Default is white
         TextXAlignment = Enum.TextXAlignment.Left,
     })
-
     local tooltipFrame = Instance.new("Frame", main, {
         Size = UDim2.new(1, 0, 0, 0), -- Start with a hidden tooltip frame
         BackgroundTransparency = 0.8, -- Adjust transparency for the tooltip background

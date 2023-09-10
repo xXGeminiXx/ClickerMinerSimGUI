@@ -165,11 +165,14 @@ local function createLabel(option, parent)
     local main = InstanceNew("TextLabel", {
         LayoutOrder = option.position,
         Size = UDim2.new(1, 0, 0, 26),
-        BackgroundTransparency = 1,
+        BackgroundTransparency = option.backgroundTransparency or 1,
+		BackgroundColor3 = option.backgroundColor or Color3.fromRGB(255, 255, 255),
+        BorderSizePixel = option.borderSize or 0,
+        BorderColor3 = option.borderColor or Color3.fromRGB(0, 0, 0),
         Text = " " .. option.text,
-        TextSize = 17,
-        Font = Enum.Font.Gotham,
-        TextColor3 = Color3.fromRGB(255, 255, 255),
+        TextSize = option.textSize or 17,
+        Font = option.font or Enum.Font.Gotham,
+        TextColor3 = option.textColor or Color3.fromRGB(255, 255, 255),
         TextXAlignment = Enum.TextXAlignment.Left,
         Parent = parent.content
     })
@@ -180,73 +183,18 @@ local function createLabel(option, parent)
     end})
 end
 function createToggle(option, parent)
-    local main = Instance.new("TextLabel", parent)
-    main.LayoutOrder = option.position
-    main.Size = UDim2.new(1, 0, 0, 31)
-    main.BackgroundColor3 = option.backgroundColor or Color3.fromRGB(255, 255, 255) -- Default is white
-    main.BorderSizePixel = option.borderSize or 0 -- Default is 0 (no border)
-    main.BorderColor3 = option.borderColor or Color3.fromRGB(0, 0, 0) -- Default is black
-    main.BackgroundTransparency = option.backgroundTransparency or 1 -- Default is fully transparent
-    main.Text = " " .. option.text
-    main.TextSize = option.textSize or 17 -- Default is 17
-    main.Font = option.font or Enum.Font.Gotham -- Default is Gotham
-    main.TextColor3 = option.textColor or Color3.fromRGB(255, 255, 255) -- Default is white
-    main.TextXAlignment = Enum.TextXAlignment.Left
-
-    -- Applying the same approach for tooltipFrame, tooltipText, and other instances
-    local tooltipFrame = Instance.new("Frame", main)
-    tooltipFrame.Size = UDim2.new(1, 0, 0, 0)
-    tooltipFrame.BackgroundTransparency = 0.8
-    tooltipFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-    tooltipFrame.BorderSizePixel = 0
-    tooltipFrame.ZIndex = 2
-
-    local tooltipText = Instance.new("TextLabel", tooltipFrame)
-    tooltipText.Size = UDim2.new(1, 0, 1, 0)
-    tooltipText.BackgroundTransparency = 1
-    tooltipText.Text = option.tooltip or ""
-    tooltipText.TextSize = 14
-    tooltipText.Font = Enum.Font.Gotham
-    tooltipText.TextColor3 = Color3.fromRGB(255, 255, 255)
-    tooltipText.TextWrapped = true
-    tooltipText.TextXAlignment = Enum.TextXAlignment.Left
-    tooltipText.TextYAlignment = Enum.TextYAlignment.Top
-    tooltipText.ZIndex = 3
-
-    -- Show tooltip on hover
-    main.MouseEnter:Connect(function()
-        tooltipFrame.Size = UDim2.new(1, 0, 0, tooltipText.TextBounds.Y + 10) -- Adjust tooltip size based on text
-    end)
-
-    -- Hide tooltip when mouse leaves
-    main.MouseLeave:Connect(function()
-        tooltipFrame.Size = UDim2.new(1, 0, 0, 0) -- Hide the tooltip frame
-    end)
-
-    local toggleButton = Instance.new("TextButton", main, {
-        Size = UDim2.new(0, 20, 0, 20),
-        Position = UDim2.new(1, -30, 0.5, -10),
-        AnchorPoint = Vector2.new(1, 0.5),
-        BackgroundTransparency = 0,
-        BackgroundColor3 = Color3.fromRGB(30, 30, 30),
-        Text = "",
+    local main = InstanceNew("TextLabel", {
+        LayoutOrder = option.position,
+        Size = UDim2.new(1, 0, 0, 31),
+        BackgroundTransparency = 1,
+        Text = " " .. option.text,
+        TextSize = 17,
+        Font = Enum.Font.Gotham,
+        TextColor3 = Color3.fromRGB(255, 255, 255),
+        TextXAlignment = Enum.TextXAlignment.Left,
+        Parent = parent.content
     })
-
-    local toggleIndicator = Instance.new("Frame", toggleButton, {
-        Size = UDim2.new(0, 16, 0, 16),
-        Position = UDim2.new(0.5, -8, 0.5, -8),
-        AnchorPoint = Vector2.new(0.5, 0.5),
-        BackgroundTransparency = 0,
-        BackgroundColor3 = option.state and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 0, 0),
-    })
-
-    toggleButton.MouseButton1Click:Connect(function()
-        option.state = not option.state
-        toggleIndicator.BackgroundColor3 = option.state and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 0, 0)
-        option.callback(option.state)
-    end)
-
-    local tickboxOutline = Instance.new("ImageLabel", main, {
+    local tickboxOutline = InstanceNew("ImageLabel", {
         Position = UDim2.new(1, -6, 0, 4),
         Size = UDim2.new(-1, 10, 1, -10),
         SizeConstraint = Enum.SizeConstraint.RelativeYY,
@@ -256,9 +204,9 @@ function createToggle(option, parent)
         ScaleType = Enum.ScaleType.Slice,
         SliceCenter = Rect.new(100, 100, 100, 100),
         SliceScale = 0.02,
+        Parent = main
     })
-
-    local tickboxInner = Instance.new("ImageLabel", tickboxOutline, {
+    local tickboxInner = InstanceNew("ImageLabel", {
         Position = UDim2.new(0, 2, 0, 2),
         Size = UDim2.new(1, -4, 1, -4),
         BackgroundTransparency = 1,
@@ -267,26 +215,25 @@ function createToggle(option, parent)
         ScaleType = Enum.ScaleType.Slice,
         SliceCenter = Rect.new(100, 100, 100, 100),
         SliceScale = 0.02,
+        Parent = tickboxOutline
     })
-
-    local checkmarkHolder = Instance.new("Frame", tickboxOutline, {
+    local checkmarkHolder = InstanceNew("Frame", {
         Position = UDim2.new(0, 4, 0, 4),
         Size = option.state and UDim2.new(1, -8, 1, -8) or UDim2.new(0, 0, 1, -8),
         BackgroundTransparency = 1,
         ClipsDescendants = true,
+        Parent = tickboxOutline
     })
-
-    local checkmark = Instance.new("ImageLabel", checkmarkHolder, {
+    local checkmark = InstanceNew("ImageLabel", {
         Size = UDim2.new(1, 0, 1, 0),
         SizeConstraint = Enum.SizeConstraint.RelativeYY,
         BackgroundTransparency = 1,
         Image = "rbxassetid://4919148038",
         ImageColor3 = Color3.fromRGB(20, 20, 20),
+        Parent = checkmarkHolder
     })
-
     local inContact
-
-    main.InputBegan:Connect(function(input)
+    main.InputBegan:connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
             option:SetState(not option.state)
         end
@@ -297,8 +244,7 @@ function createToggle(option, parent)
             end
         end
     end)
-
-    main.InputEnded:Connect(function(input)
+    main.InputEnded:connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseMovement then
             inContact = true
             if not option.state then
@@ -306,7 +252,6 @@ function createToggle(option, parent)
             end
         end
     end)
-
     function option:SetState(state)
         library.flags[self.flag] = state
         self.state = state
@@ -323,22 +268,17 @@ function createToggle(option, parent)
         end
         self.callback(state)
     end
-
     if option.state then
         delay(1, function() option.callback(true) end)
     end
-
     if not option.nopanic then
         library.objects.toggles[#library.objects.toggles + 1] = option
     end
-
-    setmetatable(option, {
-        __newindex = function(t, i, v)
-            if i == "Text" then
-                main.Text = " " .. tostring(v)
-            end
-        end,
-    })
+    setmetatable(option, {__newindex = function(t, i, v)
+        if i == "Text" then
+            main.Text = " " .. tostring(v)
+        end
+    end})
 end
 function createButton(option, parent)
     local main = InstanceNew("TextLabel", {

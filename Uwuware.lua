@@ -182,13 +182,6 @@ local function createLabel(option, parent)
         end
     end})
 end
-function toggle:UpdateState()
-    if self.state then
-        self.button.ImageColor3 = Color3.new(0, 1, 0) -- Assuming green represents the 'on' state
-    else
-        self.button.ImageColor3 = Color3.new(1, 0, 0) -- Assuming red represents the 'off' state
-    end
-end
 function createToggle(option, parent)
     local main = InstanceNew("TextLabel", {
         LayoutOrder = option.position,

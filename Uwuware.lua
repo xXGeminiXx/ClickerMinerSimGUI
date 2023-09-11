@@ -182,7 +182,6 @@ local function createLabel(option, parent)
         end
     end})
 end
-
 function toggle:UpdateState()
     if self.state then
         self.button.ImageColor3 = Color3.new(0, 1, 0) -- Assuming green represents the 'on' state

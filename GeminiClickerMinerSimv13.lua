@@ -37,6 +37,19 @@ if not UserInputService then
     warn("UserInputService not found!")
     return
 end
+local mineSizes = {
+    ["Starter Mine"] = 100,
+    ["Gem Mine"] = 101,
+    ["Frozen Mine"] = 102,
+    ["Lava Mine"] = 103,
+    ["Desert Mine"] = 104,
+    ["Poisonous Mine"] = 105,
+    ["Sakura Mine"] = 106,
+    ["Bamboo Mine"] = 107,
+    ["Sea Mine"] = 108,
+    ["Savannah Mine"] = 109,
+    -- ... add additional mines as you discover them
+}
 local blockTypes = {
     "Air", "Boundary", "TransparentBoundary", "Dirt", "Chest", "TimeTrialDoor_1", "TimeTrialDoor_2", "TimeTrialDoor_3",
     "Dirt1_1", "Dirt1_2", "Dirt1_3", "Dirt1_4", "Dirt2_1", "Dirt2_2", "Dirt2_3", "Dirt2_4", "Dirt3_1", "Dirt3_2",
@@ -158,7 +171,6 @@ local isCpsToggling = false  -- Debounce variable
 local cpsConnection
 local cps = 60  -- Initialize cps with a default value
 local isAutoMining = true  -- Flag to indicate if auto mining is active
-local originalCollideStates = {}
 -- Global variables to track the notifications
 local currentYPosition = 0.8  -- Starting from 80% of the screen height.
 local activeNotifications = {}
@@ -301,68 +313,64 @@ function getSafeNearbyBlock(currentPos)
     return nil
 end
 local Player = game.Players.LocalPlayer
--- Define a reasonable value for checkInterval (in seconds)
-local checkInterval = 1
-local function checkIfStuck()
-    while wait(checkInterval) do
-        if not Player then
-            notifyUser("Error", "checkIfStuck() - Player missing.", 3)
-            return
-        end
-        local Character = Player:WaitForChild("Character", 3)
-        if not Character then
-            notifyUser("Error", "checkIfStuck() - Character missing.", 3)
-            return
-        end
-        if not Character:FindFirstChild("HumanoidRootPart") then
-            notifyUser("Error", "checkIfStuck() - HumanoidRootPart missing.", 3)
-            return
-        end
-        local previousPosition = Character.HumanoidRootPart.Position
-        local currentPosition = Character.HumanoidRootPart.Position
-        if previousPosition and currentPosition and isStuck(currentPosition, previousPosition) then
-            local safePosition = getSafeNearbyBlock(currentPosition)
-            if safePosition then
-                Character.HumanoidRootPart.CFrame = CFrame.new(safePosition)
-            else
-                notifyUser("Stuck Check", "Couldn't find a safe Position!", 3)
-            end
-        end
-        previousPosition = currentPosition
+-- Enhanced checkIfStuck function
+-- This function checks if the player's position has remained unchanged over a period of time.
+-- If unchanged, it assumes the player is stuck and attempts a recovery by moving the player vertically.
+local lastCheckedPosition = nil
+local stuckThreshold = 5  -- Time in seconds to consider the player as stuck
+local lastCheckTime = nil
+function checkIfStuck()
+    local currentTime = tick()
+    
+    -- If this is the first check, initialize the lastCheckedPosition and lastCheckTime
+    if not lastCheckedPosition or not lastCheckTime then
+        lastCheckedPosition = Player.Character.HumanoidRootPart.Position
+        lastCheckTime = currentTime
+        return false
     end
+    
+    -- Calculate the distance moved since the last check
+    local distanceMoved = (Player.Character.HumanoidRootPart.Position - lastCheckedPosition).Magnitude
+    
+    -- If the player hasn't moved significantly and the time exceeds the threshold, they are considered stuck
+    if distanceMoved < 1 and (currentTime - lastCheckTime) > stuckThreshold then
+        notifyUser("Warning", "Player seems to be stuck. Attempting recovery.", 3)
+        
+        -- Attempt to recover by moving the player up
+        Player.Character.HumanoidRootPart.CFrame = Player.Character.HumanoidRootPart.CFrame + Vector3.new(0, 10, 0)
+        
+        -- Reset the lastCheckedPosition and lastCheckTime
+        lastCheckedPosition = Player.Character.HumanoidRootPart.Position
+        lastCheckTime = currentTime
+        return true
+    end
+    
+    -- Update the lastCheckedPosition and lastCheckTime for the next check
+    lastCheckedPosition = Player.Character.HumanoidRootPart.Position
+    lastCheckTime = currentTime
+    
+    return false
 end
-local function flyJumpActive()
-    if flyJumpActive then
+
+local function toggleFlyJump()
+    if flyjumpActive then
         if flyjump then
             flyjump:Disconnect()
             flyjump = nil
         end
-        flyJumpActive = false
+        flyjumpActive = false
+        customNotifyUser("Gemini Mode", "Fly Jump Disabled!", 2)
     else
         flyjump = game:GetService("UserInputService").JumpRequest:Connect(function()
             Player.Character:FindFirstChildWhichIsA("Humanoid"):ChangeState(Enum.HumanoidStateType.Jumping)
         end)
-        flyJumpActive = true
+        flyjumpActive = true
+        customNotifyUser("Gemini Mode", "Fly Jump Enabled!", 2)
     end
 end
 local teleportOffset = Vector3.new(0, 6, 0)  -- Example offset, adjust as needed
-local function getSafeTeleportPosition(targetPosition)
-    if not targetPosition or typeof(targetPosition) ~= "Vector3" then
-        notifyUser("Error", "Invalid target Position provided for teleportation.", 3)
-        return nil
-    end
-    local potentialTeleportPosition = targetPosition + teleportOffset
-    -- Check if the block at potentialTeleportPosition is empty
-    if isEmpty(potentialTeleportPosition) then
-        return potentialTeleportPosition
-    else
-        local alternativePosition = findAlternativeOpenBlockAbovePlayer()
-        if not alternativePosition then
-            notifyUser("Error", "Couldn't find an alternative safe Position.", 3)
-        end
-        return alternativePosition
-    end
-end
+
+
 -- Function to check if a block has been mined
 local function checkBlockMined(block)
     -- If the block doesn't exist or doesn't have a parent (indicating it's been removed from the game.Workspace or its original parent)
@@ -379,15 +387,34 @@ local function findNearestIron()
     local regionCenter = camera.CFrame.Position
     local region3 = Region3.new(regionCenter - Vector3.new(1000, 1500, 1000), regionCenter + Vector3.new(1000, 500, 1000))
     local partsInRegion = workspace:FindPartsInRegion3(region3, nil, math.huge)
+    local ironBlocksFound = 0
+    local rejectedBlocks = 0
+
     for _, obj in ipairs(partsInRegion) do
         if string.match(obj.Name, "Iron%d+_%d+") then
-            local distance = (obj.Position - camera.CFrame.Position).Magnitude
-            if distance < closestDistance then
-                closestDistance = distance
-                closestIron = obj
+            ironBlocksFound = ironBlocksFound + 1
+            if obj.Position.Y <= Player.Character.HumanoidRootPart.Position.Y + 10 and isSpaceAboveEmpty(obj.Position + Vector3.new(0, obj.Size.Y, 0)) then
+                local distance = (obj.Position - camera.CFrame.Position).Magnitude
+                if distance < closestDistance then
+                    closestDistance = distance
+                    closestIron = obj
+                end
+            else
+                rejectedBlocks = rejectedBlocks + 1
             end
         end
     end
+    
+    if not closestIron then
+        if ironBlocksFound == 0 then
+            notifyUser("Info", "No iron blocks found in the search region.", 3)
+        else
+            notifyUser("Info", "Found " .. ironBlocksFound .. " iron blocks, but " .. rejectedBlocks .. " were rejected due to checks.", 3)
+        end
+    else
+        notifyUser("Success", "Teleporting to a valid iron block.", 3)
+    end
+
     return closestIron
 end
 
@@ -431,37 +458,51 @@ local function isEmptyConsideringDepth(Position)
     return not block
 end
 local function isSpaceAboveEmpty(Position)
-    local rayLength = 1
-    local ray = Ray.new(Position, Vector3.new(0, 1, 0) * rayLength)  -- Pointing the ray upwards
+    local rayLength = 3
+    local ray = Ray.new(Position, Vector3.new(0, 1, 0) * rayLength)  -- Pointing the ray upwards for 3 units
     local block, _ = game.Workspace:FindPartOnRayWithIgnoreList(ray, {Player.Character})
     return not block
 end
+
 -- Returns the nearest copper to the camera's position with an open space above
 local function findNearestCopper()
-    local camera = game.Workspace.CurrentCamera -- Replace with how you access your game's camera
-    local cameraCFrame = game.Workspace.CurrentCamera.CFrame
-    local closestDistance = 50
+    local camera = game.Workspace.CurrentCamera
+    local closestDistance = math.huge
     local closestCopper = nil
-    local regionSize = Vector3.new(1000, 1000, 1000) -- Adjust the size of the search region as needed
-    local regionCenter = cameraCFrame.Position
-    local region3 = Region3.new(regionCenter - regionSize / 2, regionCenter + regionSize / 2)
+    local regionCenter = camera.CFrame.Position
+    local region3 = Region3.new(regionCenter - Vector3.new(1000, 1500, 1000), regionCenter + Vector3.new(1000, 500, 1000))
     local partsInRegion = workspace:FindPartsInRegion3(region3, nil, math.huge)
+    local copperBlocksFound = 0
+    local rejectedBlocks = 0
+
     for _, obj in ipairs(partsInRegion) do
         if string.match(obj.Name, "Copper%d+_%d+") then
-            local distance = (obj.Position - cameraCFrame.Position).Magnitude
-            if distance < closestDistance
-               and isEmptyConsideringDepth(obj.Position + Vector3.new(0, obj.Size.Y, 0))
-               and not checkBlockMined(obj) then
-                closestDistance = distance
-                closestCopper = obj
+            copperBlocksFound = copperBlocksFound + 1
+            if obj.Position.Y <= Player.Character.HumanoidRootPart.Position.Y + 10 and isSpaceAboveEmpty(obj.Position + Vector3.new(0, obj.Size.Y, 0)) then
+                local distance = (obj.Position - camera.CFrame.Position).Magnitude
+                if distance < closestDistance then
+                    closestDistance = distance
+                    closestCopper = obj
+                end
+            else
+                rejectedBlocks = rejectedBlocks + 1
             end
         end
     end
+    
     if not closestCopper then
-        notifyUser("Error", "No accessible copper found nearby.", 3)
+        if copperBlocksFound == 0 then
+            notifyUser("Info", "No copper blocks found in the search region.", 3)
+        else
+            notifyUser("Info", "Found " .. copperBlocksFound .. " copper blocks, but " .. rejectedBlocks .. " were rejected due to checks.", 3)
+        end
+    else
+        notifyUser("Success", "Teleporting to a valid copper block.", 3)
     end
+
     return closestCopper
 end
+
 -- Returns the nearest gem to the camera's position with an open space above
 local function findNearestGem()
     local camera = game.Workspace.CurrentCamera
@@ -470,17 +511,37 @@ local function findNearestGem()
     local regionCenter = camera.CFrame.Position
     local region3 = Region3.new(regionCenter - Vector3.new(1000, 1500, 1000), regionCenter + Vector3.new(1000, 500, 1000))
     local partsInRegion = workspace:FindPartsInRegion3(region3, nil, math.huge)
+    local gemBlocksFound = 0
+    local rejectedBlocks = 0
+
     for _, obj in ipairs(partsInRegion) do
         if string.match(obj.Name, "Gem%d+_%d+") then
-            local distance = (obj.Position - camera.CFrame.Position).Magnitude
-            if distance < closestDistance then
-                closestDistance = distance
-                closestGem = obj
+            gemBlocksFound = gemBlocksFound + 1
+            if obj.Position.Y <= Player.Character.HumanoidRootPart.Position.Y + 10 and isSpaceAboveEmpty(obj.Position + Vector3.new(0, obj.Size.Y, 0)) then
+                local distance = (obj.Position - camera.CFrame.Position).Magnitude
+                if distance < closestDistance then
+                    closestDistance = distance
+                    closestGem = obj
+                end
+            else
+                rejectedBlocks = rejectedBlocks + 1
             end
         end
     end
+    
+    if not closestGem then
+        if gemBlocksFound == 0 then
+            notifyUser("Info", "No gem blocks found in the search region.", 3)
+        else
+            notifyUser("Info", "Found " .. gemBlocksFound .. " gem blocks, but " .. rejectedBlocks .. " were rejected due to checks.", 3)
+        end
+    else
+        notifyUser("Success", "Teleporting to a valid gem block.", 3)
+    end
+
     return closestGem
 end
+
 
 -- Function to find the nearest door and teleport the Player to it
 function teleportToNearestDoor()
@@ -520,83 +581,138 @@ function isMysteryBlock(block)
     end
     return false
 end
--- Returns the nearest mystery block to the camera's position with an open space above
+-- Enhanced findNearestMystery function
+-- This function prioritizes mystery blocks based on the available open space above them.
+-- Blocks with direct open space above are prioritized, followed by blocks with open space 2 or 3 units above.
 local function findNearestMystery()
     local camera = game.Workspace.CurrentCamera
     local closestDistance = math.huge
     local closestMystery = nil
     local regionCenter = camera.CFrame.Position
-    local region3 = Region3.new(regionCenter - Vector3.new(1000, 1500, 1000), regionCenter + Vector3.new(1000, 500, 1000)) --The first Vector3 value represents the lower corner of the search region relative to the camera position, and the second Vector3 value represents the upper corner.
+    local region3 = Region3.new(regionCenter - Vector3.new(1000, 1500, 1000), regionCenter + Vector3.new(1000, 500, 1000))
     local partsInRegion = workspace:FindPartsInRegion3(region3, nil, math.huge)
     local mysteryBlocksFound = 0
     local rejectedBlocks = 0
+    
+    -- Tables to hold blocks based on priority
+    local priority1Blocks = {}  -- Blocks with direct open space above
+    local priority2Blocks = {}  -- Blocks with open space 2 units above
+    local priority3Blocks = {}  -- Blocks with open space 3 units above
+    
     for _, obj in ipairs(partsInRegion) do
         if isMysteryBlock(obj) then
             mysteryBlocksFound = mysteryBlocksFound + 1
-            if isSpaceAboveEmpty(obj.Position + Vector3.new(0, obj.Size.Y, 0)) then
+            if obj.Position.Y <= Player.Character.HumanoidRootPart.Position.Y + 10 then
+                if isSpaceAboveEmpty(obj.Position + Vector3.new(0, obj.Size.Y, 0)) then
+                    table.insert(priority1Blocks, obj)
+                elseif isSpaceAboveEmpty(obj.Position + Vector3.new(0, obj.Size.Y*2, 0)) then
+                    table.insert(priority2Blocks, obj)
+                elseif isSpaceAboveEmpty(obj.Position + Vector3.new(0, obj.Size.Y*3, 0)) then
+                    table.insert(priority3Blocks, obj)
+                else
+                    rejectedBlocks = rejectedBlocks + 1
+                end
+            end
+        end
+    end
+    
+    -- Find the closest block based on priority
+    local function findClosest(blocks)
+        for _, block in ipairs(blocks) do
+            local distance = (block.Position - camera.CFrame.Position).Magnitude
+            if distance < closestDistance then
+                closestDistance = distance
+                closestMystery = block
+            end
+        end
+    end
+    
+    findClosest(priority1Blocks)
+    if not closestMystery then
+        findClosest(priority2Blocks)
+    end
+    if not closestMystery then
+        findClosest(priority3Blocks)
+    end
+    
+    if not closestMystery then
+        if mysteryBlocksFound == 0 then
+            --notifyUser("Info", "No mystery blocks found in the search region.", .3)
+			--print("Info: No mystery blocks found in the search region.")
+
+        else
+            --notifyUser("Info", "Found " .. mysteryBlocksFound .. " mystery blocks, but " .. rejectedBlocks .. " were rejected due to checks.", .3)
+			--print("Info: Found " .. mysteryBlocksFound .. " mystery blocks, but " .. rejectedBlocks .. " were rejected due to checks.")
+
+        end
+    else
+        notifyUser("Success", "Teleporting to a valid mystery block.", .1)
+		--print("Success: Teleporting to a valid mystery block.")
+
+    end
+    return closestMystery
+end
+
+-- Returns the nearest chest to the camera's position with an open space above
+local function findNearestChest()
+    local camera = game.Workspace.CurrentCamera
+    local closestDistance = math.huge
+    local closestChest = nil
+    local regionCenter = camera.CFrame.Position
+    local region3 = Region3.new(regionCenter - Vector3.new(1000, 1500, 1000), regionCenter + Vector3.new(1000, 500, 1000))
+    local partsInRegion = workspace:FindPartsInRegion3(region3, nil, math.huge)
+    local chestBlocksFound = 0
+    local rejectedBlocks = 0
+
+    for _, obj in ipairs(partsInRegion) do
+        if string.match(obj.Name, "Chest%d+_%d+") then
+            chestBlocksFound = chestBlocksFound + 1
+            if obj.Position.Y <= Player.Character.HumanoidRootPart.Position.Y + 10 and isSpaceAboveEmpty(obj.Position + Vector3.new(0, obj.Size.Y, 0)) then
                 local distance = (obj.Position - camera.CFrame.Position).Magnitude
                 if distance < closestDistance then
                     closestDistance = distance
-                    closestMystery = obj
+                    closestChest = obj
                 end
             else
                 rejectedBlocks = rejectedBlocks + 1
             end
         end
     end
-  if not closestMystery then
-        if mysteryBlocksFound == 0 then
-            notifyUser("Info", "No mystery blocks found in the search region.", 3)
+    
+    if not closestChest then
+        if chestBlocksFound == 0 then
+            notifyUser("Info", "No chest blocks found in the search region.", 3)
         else
-            notifyUser("Info", "Found " .. mysteryBlocksFound .. " mystery blocks, but " .. rejectedBlocks .. " were rejected due to checks.", 3)
+            notifyUser("Info", "Found " .. chestBlocksFound .. " chest blocks, but " .. rejectedBlocks .. " were rejected due to checks.", 3)
         end
     else
-        notifyUser("Success", "Teleporting to a valid mystery block.", 3)
+        notifyUser("Success", "Teleporting to a valid chest block.", 3)
     end
-    return closestMystery
-end
--- Returns the nearest chest to the camera's position with an open space above
-local function findNearestChest()
-    local camera = game.Workspace.CurrentCamera -- Replace with how you access your game's camera
-    local cameraCFrame = game.Workspace.CurrentCamera.CFrame
-    local closestDistance = math.huge
-    local closestChest = nil
-    local regionSize = Vector3.new(1000, 1000, 1000) -- Adjust the size of the search region as needed
-    local regionCenter = cameraCFrame.Position
-    local region3 = Region3.new(regionCenter - regionSize / 2, regionCenter + regionSize / 2)
-    local partsInRegion = workspace:FindPartsInRegion3(region3, nil, math.huge)
-    for _, obj in ipairs(partsInRegion) do
-        if string.match(obj.Name, "Chest%d+_%d+") then
-            local distance = (obj.Position - cameraCFrame.Position).Magnitude
-            if distance < closestDistance
-               and isEmptyConsideringDepth(obj.Position + Vector3.new(0, obj.Size.Y, 0))
-               and not checkBlockMined(obj) then
-                closestDistance = distance
-                closestChest = obj
-            end
-        end
-    end
-    if not closestChest then
-        notifyUser("Error", "No accessible chest found nearby.", 3)
-    end
+
     return closestChest
 end
 -- Returns the nearest coal to the camera's position with an open space above
 local function findNearestCoal()
-    local camera = game.Workspace.CurrentCamera -- Replace with how you access your game's camera
+    local camera = game.Workspace.CurrentCamera
     local cameraCFrame = game.Workspace.CurrentCamera.CFrame
     local closestDistance = 50
     local closestCoal = nil
-    local regionSize = Vector3.new(1000, 1000, 1000) -- Adjust the size of the search region as needed
+    local teleportPosition = nil
+    local regionSize = Vector3.new(1000, 1000, 1000)
     local regionCenter = cameraCFrame.Position
     local region3 = Region3.new(regionCenter - regionSize / 2, regionCenter + regionSize / 2)
     local partsInRegion = workspace:FindPartsInRegion3(region3, nil, math.huge)
     for _, obj in ipairs(partsInRegion) do
-        if string.match(obj.Name, "Coal%d+_%d+") then
+        if string.match(obj.Name, "Coal%d+_%d+") and obj.Position.Y <= Player.Character.HumanoidRootPart.Position.Y + 10 then
             local distance = (obj.Position - cameraCFrame.Position).Magnitude
-            if distance < closestDistance
-               and isEmptyConsideringDepth(obj.Position + Vector3.new(0, obj.Size.Y, 0))
-               and not checkBlockMined(obj) then
+            -- Check space above up to 3 blocks high
+            for i = 1, 3 do
+                if isSpaceAboveEmpty(obj.Position + Vector3.new(0, obj.Size.Y + i, 0)) then
+                    teleportPosition = obj.Position + Vector3.new(0, obj.Size.Y + i, 0)
+                    break
+                end
+            end
+            if distance < closestDistance and teleportPosition then
                 closestDistance = distance
                 closestCoal = obj
             end
@@ -605,8 +721,10 @@ local function findNearestCoal()
     if not closestCoal then
         notifyUser("Error", "No accessible coal found nearby.", 3)
     end
-    return closestCoal
+    return closestCoal, teleportPosition
 end
+
+
 function checkSurroundings(block)
     print("Workspace value at checkSurroundings start:", game.Workspace)
     local Vector3_new = Vector3.new
@@ -776,6 +894,29 @@ local function antilag()
         end)
     end)
 end
+
+-- Enhanced isBlockSurrounded function
+-- This function checks if a block is surrounded on all sides using raycasting.
+function isBlockSurrounded(block)
+    local directions = {
+        Vector3.new(1, 0, 0),  -- right
+        Vector3.new(-1, 0, 0),  -- left
+        Vector3.new(0, 0, 1),  -- forward
+        Vector3.new(0, 0, -1),  -- backward
+        Vector3.new(0, 1, 0),  -- up
+        Vector3.new(0, -1, 0)  -- down
+    }
+    
+    for _, direction in ipairs(directions) do
+        local ray = Ray.new(block.Position, direction * block.Size)
+        local hit, _ = workspace:FindPartOnRay(ray)
+        if not hit then
+            return false  -- If any side is open, the block isn't surrounded
+        end
+    end
+    
+    return true  -- If all sides have a hit, the block is surrounded
+end
 local function fullbright()
     local Lighting = game:GetService("Lighting")
     Lighting.Brightness = 2
@@ -791,6 +932,8 @@ end
 
 local Noclipping = nil
 local Clip = true
+local originalCollideStates = {}
+
 function noclip()
     Clip = false
     wait(0.1)
@@ -798,7 +941,9 @@ function noclip()
         if not Clip and Players.LocalPlayer.Character then
             for _, child in pairs(Players.LocalPlayer.Character:GetDescendants()) do
                 if child:IsA("BasePart") and child.CanCollide and child.Name ~= floatName then
-                    if not originalCollideStates[child] then originalCollideStates[child] = child.CanCollide end  -- Store original state
+                    if not originalCollideStates[child] then 
+                        originalCollideStates[child] = child.CanCollide
+                    end
                     child.CanCollide = false
                 end
             end
@@ -806,24 +951,28 @@ function noclip()
     end
     Noclipping = game:GetService("RunService").Stepped:Connect(NoclipLoop)
 end
+
 function deactivateNoClip()
     if Noclipping then
         Noclipping:Disconnect()
         Noclipping = nil
     end
     Clip = true
+    wait(0.1)  -- Add a small delay to ensure the noclip loop has ceased
     if Players.LocalPlayer.Character then
         for _, child in pairs(Players.LocalPlayer.Character:GetDescendants()) do
             if child:IsA("BasePart") then
-                if originalCollideStates[child] ~= nil then  -- Check if we have an original state stored
+                if originalCollideStates[child] then
                     child.CanCollide = originalCollideStates[child]
+                    originalCollideStates[child] = nil  -- Clear the stored state
                 else
-                    child.CanCollide = true  -- Force set CanCollide to true for parts that were missed
+                    child.CanCollide = true  -- Default to true if we don't have an original state
                 end
             end
         end
     end
 end
+
 function getSafestBlock()
     -- Define the camera position as the region center
     local regionCenter = workspace.CurrentCamera.CFrame.Position
@@ -995,6 +1144,31 @@ function findAlternativeOpenBlockAbovePlayer()
     end
     return nil
 end
+
+-- Enhanced findAlternativePosition function
+-- This function attempts to find an alternative teleport position close to the original one.
+function findAlternativePosition(originalPosition)
+    local safeRadius = 10  -- a radius in which we consider an alternative position
+    local bestAlternative = nil
+    local shortestDistance = math.huge
+    
+    for angle = 0, 360, 10 do  -- checking every 10 degrees
+        local xOffset = safeRadius * math.cos(math.rad(angle))
+        local zOffset = safeRadius * math.sin(math.rad(angle))
+        local potentialPosition = originalPosition + Vector3.new(xOffset, 0, zOffset)
+        
+        -- Calculate distance to the original position
+        local distance = (potentialPosition - originalPosition).Magnitude
+        
+        if distance < shortestDistance then
+            bestAlternative = potentialPosition
+            shortestDistance = distance
+        end
+    end
+    
+    return bestAlternative
+end
+
 function teleportToPosition(Position)
     if not Player then
         notifyUser("Error", "teleportToPosition() - Player missing.", 3)
@@ -1028,21 +1202,20 @@ local function mineBlock(block)
     end
 end
 function findNearestSpecialBlock()
-    local camera = game.Workspace.CurrentCamera -- Replace with how you access your game's camera
+    local camera = game.Workspace.CurrentCamera
     local cameraPosition = camera.CFrame.Position
-    local currentPos = cameraPosition -- Use the camera's position as the starting point
     local searchRadius = 1000
     local region = Region3.new(
-        currentPos - Vector3.new(searchRadius, searchRadius, searchRadius),
-        currentPos + Vector3.new(searchRadius, searchRadius, searchRadius)
+        cameraPosition - Vector3.new(searchRadius, searchRadius, searchRadius),
+        cameraPosition + Vector3.new(searchRadius, searchRadius, searchRadius)
     )
     local partsInRadius = game.Workspace:FindPartsInRegion3(region, nil, math.huge)
     local nearestSpecialBlock = nil
     local shortestDistance = math.huge
     for _, part in ipairs(partsInRadius) do
-        if not string.match(part.Name, "^Dirt%d+_%d+$") then
-            local distance = (currentPos - part.Position).magnitude
-            if distance < shortestDistance then
+        if not string.match(part.Name, "^Dirt%d+_%d+$") and part.Position.Y <= Player.Character.HumanoidRootPart.Position.Y + 10 then
+            local distance = (cameraPosition - part.Position).magnitude
+            if distance < shortestDistance and isSpaceAboveEmpty(part.Position + Vector3.new(0, part.Size.Y, 0)) then
                 shortestDistance = distance
                 nearestSpecialBlock = part
             end
@@ -1053,6 +1226,7 @@ function findNearestSpecialBlock()
     end
     return nearestSpecialBlock
 end
+
 function isSafeToTeleport(mysteryBlock)
     -- Check the space above
     if not isSpaceAboveEmpty(mysteryBlock.Position + Vector3.new(0, mysteryBlock.Size.Y, 0)) then
@@ -1109,16 +1283,21 @@ local toggleFriendAmountToggle = mainSection:AddToggle({
         end
     end
 })
+
+-- Snipe Mode Button
+local snipeModeToggle = mainSection:AddToggle({
+    text = "Snipe Mode",
+	textColor = Color3.new(0, 128, 255),       -- Text Color
+    callback = function(state)
+        executeSnipeMode()
+    end
+})
 -- Gemini Mode Button
 local geminiModeToggle = mainSection:AddToggle({
     text = "Gemini Mode",
     tooltip = "Enable Gemini Mode for advanced features.",
-    backgroundColor = Color3.new(0.2, 0.2, 0.2), -- Custom background color
-    borderColor = Color3.new(0.4, 0.4, 0.4),     -- Custom border color
-    borderSize = 2,                              -- Custom border size
-    font = Enum.Font.SourceSansBold,             -- Custom font
     textSize = 25,                               -- Custom text size
-    textColor = Color3.new(255, 255, 255),             -- Bright blue text color
+    textColor = Color3.new(255, 50, 50),       -- Text Color
     callback = function(state)
         if state then
             EnableGeminiMode()
@@ -1128,13 +1307,6 @@ local geminiModeToggle = mainSection:AddToggle({
             notifyUser("Gemini Mode Disabled", "Advanced features are now turned off.", 2)
         end
     end,
-})
--- Snipe Mode Button
-local snipeModeToggle = mainSection:AddToggle({
-    text = "Snipe Mode",
-    callback = function(state)
-        executeSnipeMode()
-    end
 })
 -- Remove Objects Button
 local removeObjectBtn = mainSection:AddButton({ 
@@ -1170,6 +1342,7 @@ local flyJumpToggle = movementSection:AddToggle({
         if state then
             if not flyJumpActive then
                 flyJumpActive = true
+				callback = toggleFlyJump
                 customNotifyUser("Gemini Mode", "Fly Jump Enabled!", 2)
             end
         else
@@ -1209,7 +1382,22 @@ local noClipToggle = movementSection:AddToggle({
         end
     end
 })
--- Enhanced Teleport to Mystery Block Button
+local function getSafeTeleportPosition(targetPosition)
+    local possible_offsets = {Vector3.new(0, 1, 0), Vector3.new(0, 2, 0), Vector3.new(0, 3, 0)}
+    for _, offset in ipairs(possible_offsets) do
+        local checkPosition = targetPosition + offset
+        if isSpaceAboveEmpty(checkPosition) then
+            return checkPosition
+        end
+    end
+    return nil  -- Return nil if no suitable position is found
+end
+-- Enhanced Teleport to Mystery Block Toggle function
+-- This function uses the enhanced findNearestMystery for improved block selection.
+-- After each teleport, the function checks if the player is stuck using the enhanced checkIfStuck function.
+-- It introduces regular up and down movements to ensure the player is constantly moving while mining.
+-- The waiting time between teleports has been reduced for a faster operation.
+
 local teleMysteryToggle = teleportSection:AddToggle({
     text = "Tele Mystery",
     callback = function(state)
@@ -1217,27 +1405,41 @@ local teleMysteryToggle = teleportSection:AddToggle({
             isMysteryTeleporting = true
             while isMysteryTeleporting do
                 if canTeleportAgain() then
-                    -- Use the new getSafestBlock function to find the safest mystery block
-                    local mysteryBlock = getSafestBlock()
+                    local mysteryBlock = findNearestMystery()
                     if mysteryBlock then
-                        local safePosition = mysteryBlock.Position + Vector3.new(0, mysteryBlock.Size.Y + 2, 0)  -- Position player just above the mystery block
+                        local safePosition = getSafeTeleportPosition(mysteryBlock.Position)
                         if safePosition then
                             Player.Character.HumanoidRootPart.CFrame = CFrame.new(safePosition)
                             lastTeleportTime = tick()
+                            
+                            -- Check if the player is stuck after teleporting
+                            if checkIfStuck() then
+                                notifyUser("Warning", "Player seems to be stuck. Trying to recover.", 3)
+                                -- Recovery logic can be added here
+                            end
+                            
+                            -- Introduce regular up and down movements for continuous motion
+                            --Player.Character.HumanoidRootPart.CFrame = Player.Character.HumanoidRootPart.CFrame + Vector3.new(0, 5, 0)
+                            --wait(0.5)  -- Reduced waiting time
+                            --Player.Character.HumanoidRootPart.CFrame = Player.Character.HumanoidRootPart.CFrame - Vector3.new(0, 5, 0)
+                            
                         else
-                            notifyUser("Error", "Couldn't find a safe teleport Position.", 3)
+                            --notifyUser("Error", "Couldn't find a safe teleport Position.", .3)
+							--print("Error: Couldn't find a safe teleport Position.")
+
                         end
                     else
-                        notifyUser("Error", "No safe mystery block found.", 3)
+                        --notifyUser("Error", "No safe mystery block found.", .3)
+						--print("Error: No safe mystery block found.")
                     end
                 end
-                wait(2)
             end
         else
             isMysteryTeleporting = false
         end
     end 
 })
+
 -- Enhanced Teleport to Coal Block Button
 local teleCoalToggle = teleportSection:AddToggle({
     text = "Tele Coal",
@@ -1246,26 +1448,28 @@ local teleCoalToggle = teleportSection:AddToggle({
             isCoalTeleporting = true
             while isCoalTeleporting do
                 if canTeleportAgain() then
-                    local coalBlock = findNearestCoal() -- Assuming this function exists
+                    local coalBlock = findNearestCoal()
                     if coalBlock then
-                        local safePosition = coalBlock.Position + Vector3.new(0, coalBlock.Size.Y + 2, 0)
+                        local safePosition = getSafeTeleportPosition(coalBlock.Position)
                         if safePosition then
                             Player.Character.HumanoidRootPart.CFrame = CFrame.new(safePosition)
                             lastTeleportTime = tick()
                         else
-                            notifyUser("Error", "Couldn't find a safe teleport Position.", 3)
+                            print("Error: Couldn't find a safe teleport Position.")
                         end
                     else
-                        notifyUser("Error", "No safe coal block found.", 3)
+                        print("Error: No safe coal block found.")
                     end
                 end
-                wait(2)
+                wait(1)  -- Reduced delay
             end
         else
             isCoalTeleporting = false
         end
     end
 })
+
+
 -- Enhanced Teleport to Iron Block Button
 local teleIronToggle = teleportSection:AddToggle({
     text = "Tele Iron",
@@ -1274,26 +1478,27 @@ local teleIronToggle = teleportSection:AddToggle({
             isIronTeleporting = true
             while isIronTeleporting do
                 if canTeleportAgain() then
-                    local ironBlock = findNearestIron() -- Assuming this function exists
+                    local ironBlock = findNearestIron()
                     if ironBlock then
-                        local safePosition = ironBlock.Position + Vector3.new(0, ironBlock.Size.Y + 2, 0)
+                        local safePosition = getSafeTeleportPosition(ironBlock.Position)
                         if safePosition then
                             Player.Character.HumanoidRootPart.CFrame = CFrame.new(safePosition)
                             lastTeleportTime = tick()
                         else
-                            notifyUser("Error", "Couldn't find a safe teleport Position.", 3)
+                            print("Error: Couldn't find a safe teleport Position.")
                         end
                     else
-                        notifyUser("Error", "No safe iron block found.", 3)
+                        print("Error: No safe iron block found.")
                     end
                 end
-                wait(2)
+                wait(1)
             end
         else
             isIronTeleporting = false
         end
     end
 })
+-- Enhanced Teleport to Gem Block Button
 local teleGemToggle = teleportSection:AddToggle({
     text = "Tele Gem",
     callback = function(state)
@@ -1301,20 +1506,20 @@ local teleGemToggle = teleportSection:AddToggle({
             isGemTeleporting = true
             while isGemTeleporting do
                 if canTeleportAgain() then
-                    local gemBlock = findNearestGem() -- Assuming this function exists
+                    local gemBlock = findNearestGem()
                     if gemBlock then
-                        local safePosition = gemBlock.Position + Vector3.new(0, gemBlock.Size.Y + 2, 0)
+                        local safePosition = getSafeTeleportPosition(gemBlock.Position)
                         if safePosition then
                             Player.Character.HumanoidRootPart.CFrame = CFrame.new(safePosition)
                             lastTeleportTime = tick()
                         else
-                            notifyUser("Error", "Couldn't find a safe teleport Position.", 3)
+                            print("Error: Couldn't find a safe teleport Position.")
                         end
                     else
-                        notifyUser("Error", "No safe gem block found.", 3)
+                        print("Error: No safe gem block found.")
                     end
                 end
-                wait(2)
+                wait(1)
             end
         else
             isGemTeleporting = false
@@ -1329,20 +1534,20 @@ local teleChestToggle = teleportSection:AddToggle({
             isChestTeleporting = true
             while isChestTeleporting do
                 if canTeleportAgain() then
-                    local chestBlock = findNearestChest() -- Assuming this function exists
+                    local chestBlock = findNearestChest()
                     if chestBlock then
-                        local safePosition = chestBlock.Position + Vector3.new(0, chestBlock.Size.Y + 2, 0)
+                        local safePosition = getSafeTeleportPosition(chestBlock.Position)
                         if safePosition then
                             Player.Character.HumanoidRootPart.CFrame = CFrame.new(safePosition)
                             lastTeleportTime = tick()
                         else
-                            notifyUser("Error", "Couldn't find a safe teleport Position.", 3)
+                            print("Error: Couldn't find a safe teleport Position.")
                         end
                     else
-                        notifyUser("Error", "No safe chest block found.", 3)
+                        print("Error: No safe chest block found.")
                     end
                 end
-                wait(2)
+                wait(1)
             end
         else
             isChestTeleporting = false
@@ -1357,20 +1562,20 @@ local teleCopperToggle = teleportSection:AddToggle({
             isCopperTeleporting = true
             while isCopperTeleporting do
                 if canTeleportAgain() then
-                    local copperBlock = findNearestCopper() -- Corrected function call
+                    local copperBlock = findNearestCopper()
                     if copperBlock then
-                        local safePosition = copperBlock.Position + Vector3.new(0, copperBlock.Size.Y + 2, 0)
+                        local safePosition = getSafeTeleportPosition(copperBlock.Position)
                         if safePosition then
                             Player.Character.HumanoidRootPart.CFrame = CFrame.new(safePosition)
                             lastTeleportTime = tick()
                         else
-                            notifyUser("Error", "Couldn't find a safe teleport Position.", 3)
+                            print("Error: Couldn't find a safe teleport Position.")
                         end
                     else
-                        notifyUser("Error", "No safe copper block found.", 3)
+                        print("Error: No safe copper block found.")
                     end
                 end
-                wait(2)
+                wait(1)
             end
         else
             isCopperTeleporting = false
@@ -1387,8 +1592,8 @@ local autoMineGemsToggle = teleportSection:AddToggle({
                     wait(teleportCooldown)
                     local gemBlock = findNearestGem()
                     if gemBlock then
-                        local safePosition = gemBlock.Position + Vector3.new(0, gemBlock.Size.Y + 2, 0)
-                        if comprehensiveSafetyCheck(safePosition) then
+                        local safePosition = getSafeTeleportPosition(gemBlock.Position)
+                        if safePosition then
                             Player.Character.HumanoidRootPart.CFrame = CFrame.new(safePosition)
                             lastTeleportTime = tick()
                             lastTeleportedBlock = gemBlock
@@ -1408,6 +1613,34 @@ local autoMineGemsToggle = teleportSection:AddToggle({
                 autoMineGemsConnection = nil
             end
             notifyUser("Info", "Auto-Mining Gems Disabled!", 3)
+        end
+    end
+})
+-- Enhanced Teleport to Special Block Button
+local teleSpecialBlockToggle = teleportSection:AddToggle({
+    text = "Tele Special Block",
+    callback = function(state)
+        if state then
+            isSpecialBlockTeleporting = true
+            while isSpecialBlockTeleporting do
+                if canTeleportAgain() then
+                    local specialBlock = findNearestSpecialBlock()
+                    if specialBlock then
+                        local safePosition = getSafeTeleportPosition(specialBlock.Position)
+                        if safePosition then
+                            Player.Character.HumanoidRootPart.CFrame = CFrame.new(safePosition)
+                            lastTeleportTime = tick()
+                        else
+                            print("Error: Couldn't find a safe teleport Position.")
+                        end
+                    else
+                        print("Error: No safe special block found.")
+                    end
+                end
+                wait(1)
+            end
+        else
+            isSpecialBlockTeleporting = false
         end
     end
 })
@@ -1486,12 +1719,12 @@ function EnableGeminiMode()
         notifyUser("Info", "Friend Amount Set to 777!", 2)
     end
     if not flyjump then
-        flyjump = game:GetService("UserInputService").JumpRequest:Connect(function()
+		flyjump = game:GetService("UserInputService").JumpRequest:Connect(function()
             Player.Character:FindFirstChildWhichIsA("Humanoid"):ChangeState(Enum.HumanoidStateType.Jumping)
         end)
         notifyUser("Info", "Infinite Jumps Enabled!", 2)
 		flyJumpToggle.state = true
-		--flyJumpToggle:UpdateState()
+		flyJumpToggle:UpdateState()
 	end
     -- Toggle Super Speed on when Gemini Mode is activated
     if not superSpeedEnabled then
@@ -1499,7 +1732,7 @@ function EnableGeminiMode()
         notifyUser("Info", "Super Speed Enabled!", 2)
         superSpeedEnabled = true
 		superSpeedToggle.state = true
-		--superSpeedToggle:UpdateState()
+		superSpeedToggle:UpdateState()
     end
     clientantikick()
     notifyUser("Info", "Anti-Kick Enabled!", 2)
@@ -1525,7 +1758,7 @@ function EnableGeminiMode()
         -- Update noClipToggle text
         noClipToggle.text = "NoClip (Activated)"
 		noClipToggle.state = true
-		--noClipToggle:UpdateState()
+		noClipToggle:UpdateState()
 	end
     removeterrain()
     notifyUser("Info", "Some bad Terrain Removed!", 2)
@@ -1544,14 +1777,14 @@ function DisableGeminiMode()
         notifyUser("Info", "Flying Jump Disabled!", 2)
 		flyJumpToggle.text = "Fly Jump (Deactivated)"
 		flyJumpToggle.state = false
-		--flyJumpToggle:UpdateState()
+		flyJumpToggle:UpdateState()
     end
     -- Reset WalkSpeed
     Player.Character.Humanoid.WalkSpeed = normalSpeed
     notifyUser("Info", "WalkSpeed reset to normal!", 2)
 	superSpeedToggle.text = "Super Speed (Deactivated)"
 	superSpeedToggle.state = false
-	--superSpeedToggle:UpdateState()
+	superSpeedToggle:UpdateState()
     -- Remove flare effect
     removeFlare()
     notifyUser("Info", "Flare effect removed!", 2)
@@ -1570,10 +1803,10 @@ function DisableGeminiMode()
     if noclipActivatedInGeminiMode then
         deactivateNoClip()
         noclipActivatedInGeminiMode = false
-        -- Update noClipToggle text
+        --Update noClipToggle text
         noClipToggle.text = "NoClip (Deactivated)"
 		noClipToggle.state = false
-		--noClipToggle:UpdateState()
+		noClipToggle:UpdateState()
 	end
     notifyUser("We're good.", "Back to fully normal, all changes reversed.", 5)
     geminiModeToggle.Text = "Activate Gemini Mode"

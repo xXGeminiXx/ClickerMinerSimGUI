@@ -197,6 +197,10 @@ function createToggle(option, parent)
         TextXAlignment = Enum.TextXAlignment.Left,
         Parent = parent.content
     })
+    Toggle.button = main
+    Toggle:UpdateState()
+    return Toggle
+end
     local tickboxOutline = InstanceNew("ImageLabel", {
         Position = UDim2.new(1, -6, 0, 4),
         Size = UDim2.new(-1, 10, 1, -10),
@@ -283,6 +287,13 @@ function createToggle(option, parent)
             main.Text = " " .. tostring(v)
         end
     end})
+end
+function Toggle:UpdateState()
+    if self.state then
+        self.button.BackgroundColor3 = Color3.fromRGB(0, 255, 127)  -- On state color
+    else
+        self.button.BackgroundColor3 = Color3.fromRGB(255, 0, 0)  -- Off state color
+    end
 end
 function createButton(option, parent)
     local main = InstanceNew("TextLabel", {

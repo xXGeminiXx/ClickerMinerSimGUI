@@ -197,9 +197,12 @@ function createToggle(option, parent)
         TextXAlignment = Enum.TextXAlignment.Left,
         Parent = parent.content
     })
-    Toggle.button = main
-    Toggle:UpdateState()
-    return Toggle
+    
+    local toggleInstance = setmetatable({}, {__index = Toggle})
+    toggleInstance.button = main
+    toggleInstance:UpdateState()
+    
+    return toggleInstance
 end
     local tickboxOutline = InstanceNew("ImageLabel", {
         Position = UDim2.new(1, -6, 0, 4),

@@ -1,12 +1,12 @@
-local isChestTeleporting = false
-local lastTeleportTime = 0
-local isGemTeleporting = false
-local camera = game.Workspace.CurrentCamera
--- GeminisClickerMinerSim Version 12 --
+-- GeminisClickerMinerSim Version 13 --
 -- Introduced new gui using Uwuware.lua --
 -- All credits to that GUI lib go to the original developer --
 -- Created by xXGeminiXx --
 print('Library Initialization Started...')
+local isChestTeleporting = false
+local lastTeleportTime = 0
+local isGemTeleporting = false
+local camera = game.Workspace.CurrentCamera
 local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/xXGeminiXx/ClickerMinerSimGUI/main/Uwuware.lua", true))()
 local window = Library:CreateWindow("CMS-PMS by xXGeminiXx")
 local Player = game:GetService("Players") and game:GetService("Players").LocalPlayer or nil
@@ -37,7 +37,33 @@ if not UserInputService then
     warn("UserInputService not found!")
     return
 end
--- Use UserInputService directly for other operations
+local blockTypes = {
+    "Air", "Boundary", "TransparentBoundary", "Dirt", "Chest", "TimeTrialDoor_1", "TimeTrialDoor_2", "TimeTrialDoor_3",
+    "Dirt1_1", "Dirt1_2", "Dirt1_3", "Dirt1_4", "Dirt2_1", "Dirt2_2", "Dirt2_3", "Dirt2_4", "Dirt3_1", "Dirt3_2",
+    "Dirt3_3", "Dirt3_4", "Dirt4_1", "Dirt4_2", "Dirt4_3", "Dirt4_4", "Dirt5_1", "Dirt5_2", "Dirt5_3", "Dirt5_4",
+    "Dirt6_1", "Dirt6_2", "Dirt6_3", "Dirt6_4", "Chest1_1", "Chest1_2", "Chest1_3", "Chest1_4", "Chest2_1", "Chest2_2",
+    "Chest2_3", "Chest2_4", "Chest3_1", "Chest3_2", "Chest3_3", "Chest3_4", "Chest4_1", "Chest4_2", "Chest4_3", "Chest4_4",
+    "Chest5_1", "Chest5_2", "Chest5_3", "Chest5_4", "Chest6_1", "Chest6_2", "Chest6_3", "Chest6_4", "M1_1", "M1_2",
+    "M1_3", "M1_4", "M2_1", "M2_2", "M2_3", "M2_4", "M3_1", "M3_2", "M3_3", "M3_4", "M4_1", "M4_2", "M4_3", "M4_4",
+    "M5_1", "M5_2", "M5_3", "M5_4", "M6_1", "M6_2", "M6_3", "M6_4", "M7_1", "M7_2", "script", "M7_4", "M8_1", "M8_2",
+    "script", "M8_4", "M9_1", "M9_2", "M9_3", "M9_4", "Gem1_3", "Gem1_4", "Gem2_1", "Gem2_2", "Gem2_3", "Gem2_4",
+    "Gem3_1", "Gem3_2", "Gem3_3", "Gem3_4", "Gem4_1", "Gem4_2", "Gem4_3", "Gem4_4", "Gem5_1", "Gem5_2", "Gem5_3",
+    "Gem5_4", "Gem6_1", "Gem6_2", "Gem6_3", "Gem6_4", "Copper2_1", "Copper2_2", "Copper2_3", "Copper2_4", "Copper3_1",
+    "Copper3_2", "Copper3_3", "Copper3_4", "Copper4_1", "Copper4_2", "Copper4_3", "Copper4_4", "Copper5_1", "Copper5_2",
+    "Copper5_3", "Copper5_4", "Copper6_1", "Copper6_2", "Copper6_3", "Copper6_4", "Iron2_1", "Iron2_2", "Iron2_3", "Iron2_4",
+    "Iron3_1", "Iron3_2", "Iron3_3", "Iron3_4", "Iron4_1", "Iron4_2", "Iron4_3", "Iron4_4", "Iron5_1", "Iron5_2", "Iron5_3",
+    "Iron5_4", "Iron6_1", "Iron6_2", "Iron6_3", "Iron6_4", "Coal2_1", "Coal2_2", "Coal2_3", "Coal2_4", "Coal3_1", "Coal3_2",
+    "Coal3_3", "Coal3_4", "Coal4_1", "Coal4_2", "Coal4_3", "Coal4_4", "Coal5_1", "Coal5_2", "Coal5_3", "Coal5_4", "Coal6_1",
+    "Coal6_2", "Coal6_3", "Coal6_4", "EasterEgg1_1", "EasterEgg1_2", "EasterEgg1_3", "EasterEgg1_4", "EasterEgg1_5", "EasterEgg2_1",
+    "EasterEgg2_2", "EasterEgg2_3", "EasterEgg2_4", "EasterEgg2_5", "EasterEgg3_1", "EasterEgg3_2", "EasterEgg3_3", "EasterEgg3_4",
+    "EasterEgg3_5", "EasterEgg4_1", "EasterEgg4_2", "EasterEgg4_3", "EasterEgg4_4", "EasterEgg4_5", "EasterEgg5_1", "EasterEgg5_2",
+    "EasterEgg5_3", "EasterEgg5_4", "EasterEgg5_5", "EasterEgg6_1", "EasterEgg6_2", "EasterEgg6_3", "EasterEgg6_4", "EasterEgg6_5",
+    "EasterEgg7_1", "EasterEgg7_2", "EasterEgg7_3", "EasterEgg7_4", "EasterEgg7_5", "Dirt8_1", "Dirt8_2", "Dirt8_3", "Dirt8_4",
+    "Chest8_1", "Chest8_2", "Chest8_3", "Chest8_4", "Gem8_1", "Gem8_2", "Gem8_3", "Gem8_4", "Copper8_1", "Copper8_2", "Copper8_3",
+    "Copper8_4", "Iron8_1", "Iron8_2", "Iron8_3", "Iron8_4", "Coal8_1", "Coal8_2", "Coal8_3", "Coal8_4", "EasterEgg8_1", "EasterEgg8_2",
+    "EasterEgg8_3", "EasterEgg8_4", "EasterEgg8_5", "Empty"
+}
+local blockPattern = "^(?:Chest\\d+_\\d+|Copper\\d+_\\d+|Iron\\d+_\\d+|Coal\\d+_\\d+|Gem\\d+_\\d+|Mystery\\d+_\\d+|M\\d+_\\d+|EasterEgg\\d+_\\d+)$"
 cameraCFrame = cameraCFrame or game.Workspace.CurrentCamera.CFrame
 local regionCenter = cameraCFrame.Position
 local region3 = Region3.new(regionCenter - Vector3.new(50, 75, 50), regionCenter + Vector3.new(50, 25, 50))
@@ -48,13 +74,11 @@ local awaitingCpsInput = false
 local removeObjectsToggle = false
 local snipeModeToggle = false
 local toggleFriendAmountToggle = false
-
 local serverHopToggle = false
 local gemTeleportToggle = false
 local destroyGUIToggle = false
 local teleportCopperToggle = false
 -- Add Toggle Buttons
-
 local namesList = {
     "Ad_AdBoard",
 	"black", "cake", "candy", "Meshes/Donut (1)", 
@@ -160,7 +184,7 @@ local function processNotificationQueue()
         table.insert(activeNotifications, notifyObj)
     end
 end
-
+print("Script initialization started.")  
 local function notifyUser(title, text, duration, verticalOffset)
     if #activeNotifications >= MAX_ACTIVE_NOTIFICATIONS then
         return
@@ -240,13 +264,18 @@ local function removeObjectsByName(namesToRemove, startingPoint)
     end
 end
 local lastTeleportTime = 0 -- Initialize with a default value
-local function canTeleportAgain()
-    return tick() - lastTeleportTime >= 2
+function canTeleportAgain()
+    local currentTime = tick()
+    if currentTime - lastTeleportTime < teleportCooldown then
+        notifyUser("Teleport Check", "Teleport cooldown not yet passed. Wait for " .. tostring(teleportCooldown - (currentTime - lastTeleportTime)) .. " seconds.", 3)
+        return false
+    end
+    return true
 end
 local function isStuck(current, previous)
     return (current - previous).magnitude < deltaThreshold
 end
-local function isTouchingUnminable(block)
+function isTouchingUnminable(block)
     local sides = {
         Vector3.new(0, 0, 1),   -- front
         Vector3.new(0, 0, -1),  -- back
@@ -258,12 +287,13 @@ local function isTouchingUnminable(block)
         local adjacentPosition = block.Position + (block.Size * side)
         local adjacentBlock = game.Workspace:FindPartOnRayWithWhitelist(Ray.new(block.Position, side * block.Size), {game.Workspace})
         if adjacentBlock and adjacentBlock.Name == "Unminable" then
+            notifyUser("Safety Check", "Block is touching an unminable block.", 3)
             return true
         end
     end
     return false
 end
-local function getSafeNearbyBlock(currentPos)
+function getSafeNearbyBlock(currentPos)
     local Camera = workspace.CurrentCamera
     if not currentPos then
         currentPos = Camera.CFrame.Position
@@ -278,23 +308,28 @@ local function getSafeNearbyBlock(currentPos)
     for _, part in ipairs(partsInRadius) do
         local _, _, isTopOpen, _ = checkSurroundings(part)
         if isTopOpen then
+            notifyUser("Info", "Found a safe nearby block.", 3)
             return part.Position + Vector3.new(0, part.Size.Y/2 + 1, 0)
         end
     end
+    notifyUser("Info", "No safe nearby blocks found.", 3)
     return nil
 end
 -- Utility function for Player and Character Checks
-local function getPlayerCharacterRoot()
+function getPlayerCharacterRoot()
     local Player = game.Players.LocalPlayer
     if not Player then
+        notifyUser("Error", "Player missing.", 3)
         return nil, nil, nil, "Player missing."
     end
     local Character = Player:WaitForChild("Character", 3)
     if not Character then
+        notifyUser("Error", "Character missing.", 3)
         return nil, nil, nil, "Character missing."
     end
     local HumanoidRootPart = Character:FindFirstChild("HumanoidRootPart")
     if not HumanoidRootPart then
+        notifyUser("Error", "HumanoidRootPart missing.", 3)
         return nil, nil, nil, "HumanoidRootPart missing."
     end
     return Player, Character, HumanoidRootPart, nil
@@ -381,7 +416,7 @@ end
 local function findNearestIron(cameraCFrame)
     local closestDistance = 50
     local closestIron = nil
-    local regionSize = Vector3.new(10, 10, 10) -- Adjust the size of the search region as needed
+    local regionSize = Vector3.new(1000, 1000, 1000) -- Adjust the size of the search region as needed
     local regionCenter = cameraCFrame.Position
     local region3 = Region3.new(regionCenter - regionSize / 2, regionCenter + regionSize / 2)
     local partsInRegion = workspace:FindPartsInRegion3(region3, nil, math.huge)
@@ -452,7 +487,7 @@ local function findNearestCopper()
     local cameraCFrame = game.Workspace.CurrentCamera.CFrame
     local closestDistance = 50
     local closestCopper = nil
-    local regionSize = Vector3.new(10, 10, 10) -- Adjust the size of the search region as needed
+    local regionSize = Vector3.new(1000, 1000, 1000) -- Adjust the size of the search region as needed
     local regionCenter = cameraCFrame.Position
     local region3 = Region3.new(regionCenter - regionSize / 2, regionCenter + regionSize / 2)
     local partsInRegion = workspace:FindPartsInRegion3(region3, nil, math.huge)
@@ -478,7 +513,7 @@ local function findNearestGem()
     local cameraCFrame = game.Workspace.CurrentCamera.CFrame
     local closestDistance = 50
     local closestGem = nil
-    local regionSize = Vector3.new(10, 10, 10) -- Adjust the size of the search region as needed
+    local regionSize = Vector3.new(1000, 1000, 1000) -- Adjust the size of the search region as needed
     local regionCenter = cameraCFrame.Position
     local region3 = Region3.new(regionCenter - regionSize / 2, regionCenter + regionSize / 2)
     local partsInRegion = workspace:FindPartsInRegion3(region3, nil, math.huge)
@@ -522,7 +557,19 @@ function teleportToNearestDoor()
     end
 end
 function isMysteryBlock(block)
-    return (string.match(block.Name, "^Mystery%d+_%d+$") or string.match(block.Name, "^M%d+_%d+$")) and block.Name ~= "Unminable"
+    if not block or not block.Name then
+        return false
+    end
+    -- Check if the block name follows the pattern Mx_y
+    local mine_num, layer_num = block.Name:match("M(%d+)_(%d+)")
+    if mine_num and layer_num then
+        return true
+    end
+    -- The previous check for "Mystery" can be retained if there are blocks with just that name
+    if block.Name == "Mystery" then
+        return true
+    end
+    return false
 end
 -- Returns the nearest mystery block to the camera's position with an open space above
 local function findNearestMystery()
@@ -530,21 +577,32 @@ local function findNearestMystery()
     local closestDistance = math.huge
     local closestMystery = nil
     local regionCenter = camera.CFrame.Position
-    local region3 = Region3.new(regionCenter - Vector3.new(50, 75, 50), regionCenter + Vector3.new(50, 25, 50))
+    local region3 = Region3.new(regionCenter - Vector3.new(1000, 1500, 1000), regionCenter + Vector3.new(1000, 500, 1000)) --The first Vector3 value represents the lower corner of the search region relative to the camera position, and the second Vector3 value represents the upper corner.
     local partsInRegion = workspace:FindPartsInRegion3(region3, nil, math.huge)
+    local mysteryBlocksFound = 0
+    local rejectedBlocks = 0
     for _, obj in ipairs(partsInRegion) do
-        if isMysteryBlock(obj) and 
-           isSpaceAboveEmpty(obj.Position + Vector3.new(0, obj.Size.Y, 0)) and 
-           not isTouchingUnminable(obj) then
-            local distance = (obj.Position - camera.CFrame.Position).Magnitude
-            if distance < closestDistance then
-                closestDistance = distance
-                closestMystery = obj
+        if isMysteryBlock(obj) then
+            mysteryBlocksFound = mysteryBlocksFound + 1
+            if isSpaceAboveEmpty(obj.Position + Vector3.new(0, obj.Size.Y, 0)) and not isTouchingUnminable(obj) then
+                local distance = (obj.Position - camera.CFrame.Position).Magnitude
+                if distance < closestDistance then
+                    closestDistance = distance
+                    closestMystery = obj
+                end
+            else
+                rejectedBlocks = rejectedBlocks + 1
             end
         end
     end
-    if not closestMystery then
-        notifyUser("Error", "No accessible mystery block found nearby.", 3)
+  if not closestMystery then
+        if mysteryBlocksFound == 0 then
+            notifyUser("Info", "No mystery blocks found in the search region.", 3)
+        else
+            notifyUser("Info", "Found " .. mysteryBlocksFound .. " mystery blocks, but " .. rejectedBlocks .. " were rejected due to checks.", 3)
+        end
+    else
+        notifyUser("Success", "Teleporting to a valid mystery block.", 3)
     end
     return closestMystery
 end
@@ -554,7 +612,7 @@ local function findNearestChest()
     local cameraCFrame = game.Workspace.CurrentCamera.CFrame
     local closestDistance = math.huge
     local closestChest = nil
-    local regionSize = Vector3.new(10, 10, 10) -- Adjust the size of the search region as needed
+    local regionSize = Vector3.new(1000, 1000, 1000) -- Adjust the size of the search region as needed
     local regionCenter = cameraCFrame.Position
     local region3 = Region3.new(regionCenter - regionSize / 2, regionCenter + regionSize / 2)
     local partsInRegion = workspace:FindPartsInRegion3(region3, nil, math.huge)
@@ -580,7 +638,7 @@ local function findNearestCoal()
     local cameraCFrame = game.Workspace.CurrentCamera.CFrame
     local closestDistance = 50
     local closestCoal = nil
-    local regionSize = Vector3.new(10, 10, 10) -- Adjust the size of the search region as needed
+    local regionSize = Vector3.new(1000, 1000, 1000) -- Adjust the size of the search region as needed
     local regionCenter = cameraCFrame.Position
     local region3 = Region3.new(regionCenter - regionSize / 2, regionCenter + regionSize / 2)
     local partsInRegion = workspace:FindPartsInRegion3(region3, nil, math.huge)
@@ -653,19 +711,13 @@ end
 -- Returns the best block matching the itemPattern near the camera's position
 function getBestBlock(itemPattern)
     local camera = game.Workspace.CurrentCamera
-    local cameraCFrame = game.Workspace.CurrentCamera.CFrame
-    local Character = Player:WaitForChild("Character", 3)
-    if not Character or not Character:FindFirstChild("HumanoidRootPart") then
-        notifyUser("Error", "Player Character not found.", 3)
-        return nil
-    end
-    local centerPoint = cameraCFrame.Position
+    local centerPoint = camera.CFrame.Position
     local halfExtents = Vector3.new(750, 750, 750)
     local searchRegion = Region3.new(centerPoint - halfExtents, centerPoint + halfExtents)
     local blocks = game.Workspace:FindPartsInRegion3(searchRegion, nil, 1000)
-    bestBlock = nil
+    local bestBlock = nil
     local closestDistance = math.huge
-    local PlayerPosition = game.Workspace.CurrentCamera.CFrame.Position
+    local PlayerPosition = camera.CFrame.Position
     for _, block in ipairs(blocks) do
         if string.match(block.Name, itemPattern) then
             local distance = (block.Position - PlayerPosition).Magnitude
@@ -677,7 +729,9 @@ function getBestBlock(itemPattern)
         end
     end
     if not bestBlock then
-        notifyUser("Snipe Mode", "No block found for pattern: " .. itemPattern, 1)
+        notifyUser("Snipe Mode", "No block found for pattern: " .. itemPattern, 3)
+    else
+        notifyUser("Success", "Best block found for pattern: " .. itemPattern, 3)
     end
     return bestBlock
 end
@@ -841,6 +895,77 @@ function deactivateNoClip()
             end
         end
     end
+end
+function getSafestBlock()
+    -- Define the camera position as the region center
+    local regionCenter = workspace.CurrentCamera.CFrame.Position
+    -- Define the search region based on the camera position
+    local region3 = Region3.new(regionCenter - Vector3.new(1000, 1500, 1000), regionCenter + Vector3.new(1000, 500, 1000))
+    -- Find all parts within the defined region
+    local partsInRegion = workspace:FindPartsInRegion3(region3, nil, math.huge)
+    -- Filter out only the mystery blocks
+    local mysteryBlocks = {}
+    for _, part in pairs(partsInRegion) do
+        if part and part.Name and string.match(part.Name, "M%d+_") then -- Adjusted to the new naming pattern
+            table.insert(mysteryBlocks, part)
+        end
+    end
+    -- Sort the mystery blocks based on distance to the camera position
+    table.sort(mysteryBlocks, function(a, b)
+        return (a.Position - regionCenter).Magnitude < (b.Position - regionCenter).Magnitude
+    end)
+    -- Check each mystery block for safety and return the first safe one found
+    for _, mysteryBlock in pairs(mysteryBlocks) do
+        if isSafeToTeleport(mysteryBlock) then
+            notifyUser("Success", "Found a safe mystery block to teleport.", 3)
+            return mysteryBlock
+        end
+    end
+    notifyUser("Info", "No safe mystery blocks found in the region.", 3)
+    return nil
+end
+-- Enhanced isTouchingUnminable function
+function enhanced_isTouchingUnminable(block)
+    local sides = {
+        Vector3.new(0, 0, 1),   -- front
+        Vector3.new(0, 0, -1),  -- back
+        Vector3.new(1, 0, 0),   -- right
+        Vector3.new(-1, 0, 0),  -- left
+        Vector3.new(0, -1, 0)   -- bottom
+    }
+    for _, side in ipairs(sides) do
+        local adjacentPosition = block.Position + (block.Size * side)
+        local adjacentBlock = game.Workspace:FindPartOnRayWithWhitelist(Ray.new(block.Position, side * block.Size), {game.Workspace})
+        if adjacentBlock and adjacentBlock.Name == "Unminable" then
+            return true
+        end
+    end
+    return false
+end
+-- Enhanced getBestBlock function
+function enhanced_getBestBlock(itemPattern)
+    local camera = game.Workspace.CurrentCamera
+    local centerPoint = camera.CFrame.Position
+    local halfExtents = Vector3.new(750, 750, 750)
+    local searchRegion = Region3.new(centerPoint - halfExtents, centerPoint + halfExtents)
+    local blocks = game.Workspace:FindPartsInRegion3(searchRegion, nil, 1000)
+    local bestBlock = nil
+    local closestDistance = math.huge
+    local PlayerPosition = camera.CFrame.Position
+    for _, block in ipairs(blocks) do
+        if string.match(block.Name, itemPattern) then
+            local distance = (block.Position - PlayerPosition).Magnitude
+            local _, _, isTopOpen, _ = checkSurroundings(block)
+            if distance < closestDistance and isTopOpen and isEmptyConsideringDepth(block.Position + Vector3.new(0, block.Size.Y, 0)) then
+                closestDistance = distance
+                bestBlock = block
+            end
+        end
+    end
+    if not bestBlock then
+        notifyUser("Snipe Mode", "No block found for pattern: " .. itemPattern, 1)
+    end
+    return bestBlock
 end
 function deactivateFullbright()
     local Lighting = game:GetService("Lighting")
@@ -1084,7 +1209,7 @@ function findNearestSpecialBlock()
     local camera = game.Workspace.CurrentCamera -- Replace with how you access your game's camera
     local cameraPosition = camera.CFrame.Position
     local currentPos = cameraPosition -- Use the camera's position as the starting point
-    local searchRadius = 10
+    local searchRadius = 1000
     local region = Region3.new(
         currentPos - Vector3.new(searchRadius, searchRadius, searchRadius),
         currentPos + Vector3.new(searchRadius, searchRadius, searchRadius)
@@ -1106,123 +1231,73 @@ function findNearestSpecialBlock()
     end
     return nearestSpecialBlock
 end
-
--- Function to disable Gemini Mode features
-function DisableGeminiMode()
-    
-    -- Deactivate Infinite Jumps
-    if flyjump then
-        flyjump:Disconnect()
-        flyjump = nil
-        notifyUser("Info", "Flying Jump Disabled!", 2)
-		flyJumpToggle.text = "Fly Jump (Deactivated)"
-		flyJumpToggle.state = false
-		flyJumpToggle:UpdateState()
-
-    end
-    -- Reset WalkSpeed
-    Player.Character.Humanoid.WalkSpeed = normalSpeed
-    notifyUser("Info", "WalkSpeed reset to normal!", 2)
-	superSpeedToggle.text = "Super Speed (Deactivated)"
-	superSpeedToggle.state = false
-	superSpeedToggle:UpdateState()
-    -- Remove flare effect
-    removeFlare()
-    notifyUser("Info", "Flare effect removed!", 2)
-    -- Disconnect flare update connection
-    if flareUpdateConnection then
-        flareUpdateConnection:Disconnect()
-        flareUpdateConnection = nil
-    end
-    -- Restore original FriendAmount
-    if originalFriendAmount then
-        Player.FriendAmount.Value = originalFriendAmount
-        originalFriendAmount = nil
-        notifyUser("Info", "Friend Amount Restored!", 2)
-    end
-    -- Deactivate NoClip
-    if noclipActivatedInGeminiMode then
-        deactivateNoClip()
-        noclipActivatedInGeminiMode = false
-        -- Update noClipToggle text
-        noClipToggle.text = "NoClip (Deactivated)"
-		noClipToggle.state = false
-		noClipToggle:UpdateState()
-	end
-    notifyUser("We're good.", "Back to fully normal, all changes reversed.", 5)
-    geminiModeToggle.Text = "Activate Gemini Mode"
-end
--- Snipe Mode variables -- Snipe Mode variables
-local isSnipeModeActive = false 
-local snipeModeConnection = nil 
-local failedAttempts = 0  -- Counter to track failed attempts 
-local maxFailedAttempts = 500  -- Maximum allowed failed attempts before Snipe Mode is deactivated 
-local snipeCooldown = 1  -- Cooldown duration in seconds 
--- Improved function to check if top block is actually empty -- Improved function to check if top block is actually empty
-local priorityOrder = {"M%d+_", "Mystery%d+_%d+", "Gem%d+_", "Chest%d+_%d+", "Coal%d+_%d+"}
-function executeSnipeMode()
-    isSnipeModeActive = not isSnipeModeActive
-    if isSnipeModeActive then 
-        snipeModeToggle.text = "Stop Snipe Mode"
-        notifyUser("Snipe Mode", "Snipe Mode Activated!", 3)
-        notifyUser("Snipe Mode", "Starting snipe loop...", 2)
-        snipeModeConnection = game:GetService("RunService").Heartbeat:Connect(function()
-            local foundBlock = false 
-            wait(0.3)  -- This will make it try approximately 3 times a second
-            for _, pattern in ipairs(priorityOrder) do
-                bestBlock = getBestBlock(pattern)
-                if bestBlock then 
-                    _, _, isTopOpen, _ = checkSurroundings(bestBlock)
-                    notifyUser("Snipe Mode", "Best block identified: " .. bestBlock.Name, 2)
-                    if isTopOpen and isTopSpaceEmpty(bestBlock) then
-                        if bestBlock:IsDescendantOf(game.Workspace) then
-                            local teleportPosition = getSafeTeleportPosition(bestBlock.Position) 
-                            Player.Character.HumanoidRootPart.CFrame = CFrame.new(teleportPosition)
-                            foundBlock = true
-                            failedAttempts = 0  -- Reset failed attempts counter
-                            notifyUser("Snipe Mode", "Teleported to block: " .. bestBlock.Name, 2)
-                            wait(0.05)
-                            break
-                        end
-                    end
-                end 
-            end 
-            if not foundBlock then 
-                failedAttempts = failedAttempts + 1
-                if failedAttempts >= maxFailedAttempts then 
-                    snipeModeBtn.text = "Snipe Mode"
-                    notifyUser("Snipe Mode", "Maximum failed attempts reached. Stopping Snipe Mode.", 3)
-                    isSnipeModeActive = false
-                    if snipeModeConnection then 
-                        snipeModeConnection:Disconnect()
-                        snipeModeConnection = nil
-                    end 
-                end 
-            end 
-        end) 
-    else 
-        if snipeModeConnection then 
-            snipeModeConnection:Disconnect()
-            snipeModeConnection = nil
-        end 
-        snipeModeToggle.text = "Snipe Mode"
-        notifyUser("Snipe Mode", "Snipe Mode Deactivated!", 3)
-    end 
-end
--- Remove Objects Button
-local removeObjectBtn = mainSection:AddButton({ 
-    text = "Remove Objects", 
-    callback = function()
-        print("Button Callback Triggered...")
-        -- Ensure removeObjectBtn is initialized
-        if not removeObjectBtn then return end
-        if not removeObjectsToggle then
-            removeObjectsByName(namesList)
+-- Enhanced function to get the safest non-dirt block
+function getBestNonDirtBlock()
+    local bestBlock = nil
+    for _, blockType in ipairs(blockTypes) do
+        if blockType ~= "Dirt" then
+            local block = getBestBlock(blockType)
+            if block then
+                bestBlock = block
+                break
+            end
         end
-        removeObjectsToggle = not removeObjectsToggle
-        removeObjectBtn.text = removeObjectsToggle and "Stop Removing Objects" or "Remove Objects"
-    end 
-})
+    end
+    if not bestBlock then
+        notifyUser("Info", "No non-dirt block found.", 3)
+    else
+        notifyUser("Success", "Best non-dirt block found.", 3)
+    end
+    return bestBlock
+end
+function isSafeToTeleport(mysteryBlock)
+    -- Check the space above
+    if not isSpaceAboveEmpty(mysteryBlock.Position + Vector3.new(0, mysteryBlock.Size.Y, 0)) then
+        notifyUser("Info", "Space above mystery block is not empty.", 3)
+        return false
+    end
+    -- Check if the block is touching any unminable blocks
+    if isTouchingUnminable(mysteryBlock) then
+        notifyUser("Info", "Mystery block is touching unminable block.", 3)
+        return false
+    end
+    -- Any other checks can be added here
+    return true
+end
+function comprehensiveSafetyCheck(position)
+    -- Check if position exists and is of type Vector3
+    if not position or typeof(position) ~= "Vector3" then
+        notifyUser("Safety Check", "Invalid position provided.", 3)
+        return false
+    end
+    -- Check if player would be stuck at the target position
+    if isStuck(position) then
+        notifyUser("Safety Check", "Player would be stuck at target position.", 3)
+        return false
+    end
+    -- Check if player would be touching unminable blocks at the target position
+    if isTouchingUnminable(position) then
+        notifyUser("Safety Check", "Player would touch unminable blocks at target position.", 3)
+        return false
+    end
+    -- Any other checks can be added here with corresponding notifications
+    notifyUser("Safety Check", "Position is safe for teleport.", 3)
+    return true -- If all checks pass, return true
+end
+-- Define variables to track toggle states
+local serverHopToggle = false
+local gemTeleportToggle = false
+local destroyGUIToggle = false
+local teleportCopperToggle = false
+local teleGemToggle = false
+local teleMysteryToggle = false
+local teleCoalToggle = false
+local teleCopperToggle = false
+local teleChestToggle = false
+local autoTeleportToggle = false
+local cpsLabelToggle = false
+-- NoClip Button
+-- Server Hop Button
 -- Toggle Friend Amount Button
 local toggleFriendAmountToggle = mainSection:AddToggle({
     text = "Toggle Friend Amount",
@@ -1240,22 +1315,47 @@ local toggleFriendAmountToggle = mainSection:AddToggle({
         end
     end
 })
+-- Gemini Mode Button
+local geminiModeToggle = mainSection:AddToggle({
+    text = "Gemini Mode",
+    tooltip = "Enable Gemini Mode for advanced features.",
+    backgroundColor = Color3.new(0.2, 0.2, 0.2), -- Custom background color
+    borderColor = Color3.new(0.4, 0.4, 0.4),     -- Custom border color
+    borderSize = 2,                              -- Custom border size
+    font = Enum.Font.SourceSansBold,             -- Custom font
+    textSize = 25,                               -- Custom text size
+    textColor = Color3.new(255, 255, 255),             -- Bright blue text color
+    callback = function(state)
+        if state then
+            EnableGeminiMode()
+            notifyUser("Gemini Mode Enabled", "You now have access to advanced features.", 2)
+        else
+            DisableGeminiMode()
+            notifyUser("Gemini Mode Disabled", "Advanced features are now turned off.", 2)
+        end
+    end,
+})
 -- Snipe Mode Button
 local snipeModeToggle = mainSection:AddToggle({
     text = "Snipe Mode",
     callback = function(state)
-        if state then
-            executeSnipeMode()
-        end
+        executeSnipeMode()
     end
 })
--- Define variables to track toggle states
-
-local serverHopToggle = false
-local gemTeleportToggle = false
-local destroyGUIToggle = false
-local teleportCopperToggle = false
--- Server Hop Button
+-- Remove Objects Button
+local removeObjectBtn = mainSection:AddButton({ 
+    text = "Remove Objects", 
+    callback = function()
+        print("Button Callback Triggered...")
+        -- Ensure removeObjectBtn is initialized
+        if not removeObjectBtn then return end
+        if not removeObjectsToggle then
+            removeObjectsByName(namesList)
+        end
+        removeObjectsToggle = not removeObjectsToggle
+        removeObjectBtn.text = removeObjectsToggle and "Stop Removing Objects" or "Remove Objects"
+    end 
+})
 local serverHopBtn = mainSection:AddButton({ 
     text = "Server Hop", 
     callback = function()
@@ -1303,15 +1403,6 @@ local superSpeedToggle = movementSection:AddToggle({
         end
     end
 })
--- Define variables to track toggle states
-local teleGemToggle = false
-local teleMysteryToggle = false
-local teleCoalToggle = false
-local teleCopperToggle = false
-local teleChestToggle = false
-local autoTeleportToggle = false
-local cpsLabelToggle = false
--- NoClip Button
 local noClipToggle = movementSection:AddToggle({
     text = "NoClip",
     callback = function(state)
@@ -1324,74 +1415,7 @@ local noClipToggle = movementSection:AddToggle({
         end
     end
 })
-function EnableGeminiMode()
-    -- Activate Gemini Mode logic here
-    isGeminiModeOn = true
-    notifyUser("#WINNING", "Gemini Mode Enabled. Hang in there while we toggle...", 3)
-
-    -- Store original FriendAmount
-    originalFriendAmount = Player.FriendAmount.Value
-    local prop = Player:FindFirstChild("FriendAmount")
-    if prop then
-        prop.Value = 777
-        notifyUser("WTF", "OMG YOU'RE SO POPULAR!", 1)
-        notifyUser("Info", "Friend Amount Set to 777!", 2)
-    end
-    if not flyjump then
-        flyjump = game:GetService("UserInputService").JumpRequest:Connect(function()
-            Player.Character:FindFirstChildWhichIsA("Humanoid"):ChangeState(Enum.HumanoidStateType.Jumping)
-        end)
-        notifyUser("Info", "Infinite Jumps Enabled!", 2)
-		flyJumpToggle.state = true
-		flyJumpToggle:UpdateState()
-	end
-	
-    -- Toggle Super Speed on when Gemini Mode is activated
-    if not superSpeedEnabled then
-        Player.Character.Humanoid.WalkSpeed = 80
-        notifyUser("Info", "Super Speed Enabled!", 2)
-        superSpeedEnabled = true
-		superSpeedToggle.state = true
-		superSpeedToggle:UpdateState()
-    end
-    clientantikick()
-    notifyUser("Info", "Anti-Kick Enabled!", 2)
-    notifyUser("Info", "Turning on Anti-Lag... it'll cause some lag first... lol", 2)
-    antilag()
-    notifyUser("xXGeminiXx", "Okay bud, trees and shit going away now.", 2)
-    removeObjectsByName(namesList)
-    notifyUser("Info", "Anti-Lag Enabled! Lag over.", 2)
-    addFlare(Player.Character)
-    flareUpdateConnection = game:GetService("RunService").Heartbeat:Connect(function()
-        updateFlare(Player.Character)
-    end)
-    notifyUser("Look what I can do!", "Gemini's badass Flare effect added!", 2)
-    clientantiteleport()
-    notifyUser("Info", "Anti-Teleport Enabled!", 2)
-    antiidle()
-    notifyUser("Info", "Anti-Idle Enabled!", 2)
-    -- Toggle NoClip on when Gemini Mode is activated
-    if Clip then
-        noclip()
-        notifyUser("Info", "NoClip Enabled!", 2)
-        noclipActivatedInGeminiMode = true
-        -- Update noClipToggle text
-        noClipToggle.text = "NoClip (Activated)"
-		noClipToggle.state = true
-		noClipToggle:UpdateState()
-	end
-	
-	
-    removeterrain()
-    notifyUser("Info", "Some bad Terrain Removed!", 2)
-    -- Fullbright
-    fullbright()
-    notifyUser("Info", "Fullbright Enabled!", 2)
-    notifyUser("xXGeminiXx", "Welcome to my world. Gemini Mode on.", 2)
-    geminiModeToggle.Text = "Deactivate Gemini Mode"
-end
-
--- Teleport to Mystery Block Button
+-- Enhanced Teleport to Mystery Block Button
 local teleMysteryToggle = teleportSection:AddToggle({
     text = "Tele Mystery",
     callback = function(state)
@@ -1399,7 +1423,8 @@ local teleMysteryToggle = teleportSection:AddToggle({
             isMysteryTeleporting = true
             while isMysteryTeleporting do
                 if canTeleportAgain() then
-                    local mysteryBlock = findNearestMystery()
+                    -- Use the new getSafestBlock function to find the safest mystery block
+                    local mysteryBlock = getSafestBlock()
                     if mysteryBlock then
                         local safePosition = mysteryBlock.Position + Vector3.new(0, mysteryBlock.Size.Y + 2, 0)  -- Position player just above the mystery block
                         if safePosition then
@@ -1408,6 +1433,8 @@ local teleMysteryToggle = teleportSection:AddToggle({
                         else
                             notifyUser("Error", "Couldn't find a safe teleport Position.", 3)
                         end
+                    else
+                        notifyUser("Error", "No safe mystery block found.", 3)
                     end
                 end
                 wait(2)
@@ -1425,10 +1452,17 @@ local teleCoalToggle = teleportSection:AddToggle({
             isCoalTeleporting = true
             while isCoalTeleporting do
                 if canTeleportAgain() then
-                    local coal = findNearestCoal()
-                    if coal then
-                        local safePosition = getSafeTeleportPosition(coal.Position)
-                        Player.Character.HumanoidRootPart.CFrame = CFrame.new(safePosition)
+                    local coalBlock = getBestBlock("Coal")
+                    if coalBlock then
+                        local safePosition = coalBlock.Position + Vector3.new(0, coalBlock.Size.Y + 2, 0)
+                        if comprehensiveSafetyCheck(safePosition) then
+                            Player.Character.HumanoidRootPart.CFrame = CFrame.new(safePosition)
+                            lastTeleportTime = tick()
+                        else
+                            notifyUser("Error", "Couldn't find a safe teleport Position for Coal.", 3)
+                        end
+                    else
+                        notifyUser("Error", "No safe coal block found.", 3)
                     end
                 end
                 wait(2)
@@ -1438,25 +1472,33 @@ local teleCoalToggle = teleportSection:AddToggle({
         end
     end
 })
-local teleCopperBtn  -- Forward declaration
 local teleCopperToggle = teleportSection:AddToggle({
     text = "Tele Copper",
     callback = function(state)
-        local Character = Player:WaitForChild("Character", 3)
-        if not Character then
-            customNotifyUser("Error", "Player Character not found.", 3)
-            return
-        end
         if state then
-            local copper = findNearestCopper()
-            if copper then
-                local safePosition = getSafeTeleportPosition(copper.Position)
-                Character.HumanoidRootPart.CFrame = CFrame.new(safePosition)
+            isCopperTeleporting = true
+            while isCopperTeleporting do
+                if canTeleportAgain() then
+                    local copperBlock = getBestBlock("Copper")
+                    if copperBlock then
+                        local safePosition = copperBlock.Position + Vector3.new(0, copperBlock.Size.Y + 2, 0)
+                        if comprehensiveSafetyCheck(safePosition) then
+                            Player.Character.HumanoidRootPart.CFrame = CFrame.new(safePosition)
+                            lastTeleportTime = tick()
+                        else
+                            notifyUser("Error", "Couldn't find a safe teleport Position for Copper.", 3)
+                        end
+                    else
+                        notifyUser("Error", "No safe copper block found.", 3)
+                    end
+                end
+                wait(2)
             end
+        else
+            isCopperTeleporting = false
         end
     end
 })
--- Teleport to Gem Button
 local teleGemToggle = teleportSection:AddToggle({
     text = "Tele Gem",
     callback = function(state)
@@ -1467,11 +1509,18 @@ local teleGemToggle = teleportSection:AddToggle({
                     local gem = findNearestGem()
                     if gem then
                         local safePosition = getSafeTeleportPosition(gem.Position)
-                        Player.Character.HumanoidRootPart.CFrame = CFrame.new(safePosition)
-                        lastTeleportTime = tick()
+                        if comprehensiveSafetyCheck(safePosition) then
+                            Player.Character.HumanoidRootPart.CFrame = CFrame.new(safePosition)
+                            lastTeleportTime = tick()
+                            notifyUser("Tele Gem", "Teleported to Gem: " .. gem.Name, 2)
+                        else
+                            notifyUser("Tele Gem", "Safety checks failed for Gem: " .. gem.Name, 3)
+                        end
+                    else
+                        notifyUser("Error", "No gem found to teleport to.", 3)
                     end
                 end
-                wait(1)
+                wait(2)
             end
         else
             isGemTeleporting = false
@@ -1486,14 +1535,20 @@ local teleChestToggle = teleportSection:AddToggle({
             isChestTeleporting = true
             while isChestTeleporting do
                 if canTeleportAgain() then
-                    local chest = findNearestChest()
-                    if chest then
-                        local safePosition = getSafeTeleportPosition(chest.Position)
-                        Player.Character.HumanoidRootPart.CFrame = CFrame.new(safePosition)
-                        lastTeleportTime = tick()
+                    local chestBlock = getBestBlock("Chest")
+                    if chestBlock then
+                        local safePosition = chestBlock.Position + Vector3.new(0, chestBlock.Size.Y + 2, 0)
+                        if comprehensiveSafetyCheck(safePosition) then
+                            Player.Character.HumanoidRootPart.CFrame = CFrame.new(safePosition)
+                            lastTeleportTime = tick()
+                        else
+                            notifyUser("Error", "Couldn't find a safe teleport Position for Chest.", 3)
+                        end
+                    else
+                        notifyUser("Error", "No safe chest block found.", 3)
                     end
                 end
-                wait(1)
+                wait(2)
             end
         else
             isChestTeleporting = false
@@ -1508,13 +1563,18 @@ local autoMineGemsToggle = teleportSection:AddToggle({
             autoMineGemsConnection = game:GetService("RunService").Heartbeat:Connect(function()
                 if not lastTeleportedBlock or checkBlockMined(lastTeleportedBlock) then
                     wait(teleportCooldown)
-                    local gem = findNearestGem()
-                    if gem then
-                        local gemPosition = gem.Position
-                        local teleportOffset = Vector3.new(0, 6, 0)
-                        local teleportPosition = gemPosition + teleportOffset
-                        Player.Character.HumanoidRootPart.CFrame = CFrame.new(teleportPosition)
-                        lastTeleportedBlock = gem
+                    local gemBlock = getBestNonDirtBlock()
+                    if gemBlock then
+                        local safePosition = gemBlock.Position + Vector3.new(0, gemBlock.Size.Y + 2, 0)
+                        if comprehensiveSafetyCheck(safePosition) then
+                            Player.Character.HumanoidRootPart.CFrame = CFrame.new(safePosition)
+                            lastTeleportTime = tick()
+                            lastTeleportedBlock = gemBlock
+                        else
+                            notifyUser("Error", "Couldn't find a safe teleport Position for auto-mine.", 3)
+                        end
+                    else
+                        notifyUser("Error", "No safe gem block found for auto-mine.", 3)
                     end
                 end
             end)
@@ -1560,25 +1620,20 @@ teleportSection:AddButton({
         teleportToNearestDoor()
     end 
 })
--- Gemini Mode Button
-local geminiModeToggle = mainSection:AddToggle({
-    text = "Gemini Mode",
-    tooltip = "Enable Gemini Mode for advanced features.",
-    backgroundColor = Color3.new(0.2, 0.2, 0.2), -- Custom background color
-    borderColor = Color3.new(0.4, 0.4, 0.4),     -- Custom border color
-    borderSize = 2,                              -- Custom border size
-    font = Enum.Font.SourceSansBold,             -- Custom font
-    textSize = 25,                               -- Custom text size
-    textColor = Color3.new(255, 255, 255),             -- Bright blue text color
-    callback = function(state)
-        if state then
-            EnableGeminiMode()
-            notifyUser("Gemini Mode Enabled", "You now have access to advanced features.", 2)
-        else
-            DisableGeminiMode()
-            notifyUser("Gemini Mode Disabled", "Advanced features are now turned off.", 2)
+local resetCollisionToggle = mainSection:AddButton({
+    text = "Reset Collision",
+    callback = function()
+        local Character = Player.Character
+        if Character then
+            -- Iterate over each part in the character
+            for _, part in pairs(Character:GetChildren()) do
+                if part:IsA("BasePart") then
+                    part.CanCollide = true
+                end
+            end
+            notifyUser("Info", "Collision values reset to default.", 2)
         end
-    end,
+    end
 })
 userInputService.InputBegan:Connect(function(input, isProcessed)
     if awaitingCpsInput and not isProcessed then
@@ -1595,5 +1650,170 @@ userInputService.InputBegan:Connect(function(input, isProcessed)
         end
     end
 end)
+function EnableGeminiMode()
+    -- Activate Gemini Mode logic here
+    isGeminiModeOn = true
+    notifyUser("#WINNING", "Gemini Mode Enabled. Hang in there while we toggle...", 3)
+    -- Store original FriendAmount
+    originalFriendAmount = Player.FriendAmount.Value
+    local prop = Player:FindFirstChild("FriendAmount")
+    if prop then
+        prop.Value = 777
+        notifyUser("WTF", "OMG YOU'RE SO POPULAR!", 1)
+        notifyUser("Info", "Friend Amount Set to 777!", 2)
+    end
+    if not flyjump then
+        flyjump = game:GetService("UserInputService").JumpRequest:Connect(function()
+            Player.Character:FindFirstChildWhichIsA("Humanoid"):ChangeState(Enum.HumanoidStateType.Jumping)
+        end)
+        notifyUser("Info", "Infinite Jumps Enabled!", 2)
+		flyJumpToggle.state = true
+		--flyJumpToggle:UpdateState()
+	end
+    -- Toggle Super Speed on when Gemini Mode is activated
+    if not superSpeedEnabled then
+        Player.Character.Humanoid.WalkSpeed = 80
+        notifyUser("Info", "Super Speed Enabled!", 2)
+        superSpeedEnabled = true
+		superSpeedToggle.state = true
+		--superSpeedToggle:UpdateState()
+    end
+    clientantikick()
+    notifyUser("Info", "Anti-Kick Enabled!", 2)
+    notifyUser("Info", "Turning on Anti-Lag... it'll cause some lag first... lol", 2)
+    antilag()
+    notifyUser("xXGeminiXx", "Okay bud, trees and shit going away now.", 2)
+    removeObjectsByName(namesList)
+    notifyUser("Info", "Anti-Lag Enabled! Lag over.", 2)
+    addFlare(Player.Character)
+    flareUpdateConnection = game:GetService("RunService").Heartbeat:Connect(function()
+        updateFlare(Player.Character)
+    end)
+    notifyUser("Look what I can do!", "Gemini's badass Flare effect added!", 2)
+    clientantiteleport()
+    notifyUser("Info", "Anti-Teleport Enabled!", 2)
+    antiidle()
+    notifyUser("Info", "Anti-Idle Enabled!", 2)
+    -- Toggle NoClip on when Gemini Mode is activated
+    if Clip then
+        noclip()
+        notifyUser("Info", "NoClip Enabled!", 2)
+        noclipActivatedInGeminiMode = true
+        -- Update noClipToggle text
+        noClipToggle.text = "NoClip (Activated)"
+		noClipToggle.state = true
+		--noClipToggle:UpdateState()
+	end
+    removeterrain()
+    notifyUser("Info", "Some bad Terrain Removed!", 2)
+    -- Fullbright
+    fullbright()
+    notifyUser("Info", "Fullbright Enabled!", 2)
+    notifyUser("xXGeminiXx", "Welcome to my world. Gemini Mode on.", 2)
+    geminiModeToggle.Text = "Deactivate Gemini Mode"
+end
+-- Function to disable Gemini Mode features
+function DisableGeminiMode()
+    -- Deactivate Infinite Jumps
+    if flyjump then
+        flyjump:Disconnect()
+        flyjump = nil
+        notifyUser("Info", "Flying Jump Disabled!", 2)
+		flyJumpToggle.text = "Fly Jump (Deactivated)"
+		flyJumpToggle.state = false
+		--flyJumpToggle:UpdateState()
+    end
+    -- Reset WalkSpeed
+    Player.Character.Humanoid.WalkSpeed = normalSpeed
+    notifyUser("Info", "WalkSpeed reset to normal!", 2)
+	superSpeedToggle.text = "Super Speed (Deactivated)"
+	superSpeedToggle.state = false
+	--superSpeedToggle:UpdateState()
+    -- Remove flare effect
+    removeFlare()
+    notifyUser("Info", "Flare effect removed!", 2)
+    -- Disconnect flare update connection
+    if flareUpdateConnection then
+        flareUpdateConnection:Disconnect()
+        flareUpdateConnection = nil
+    end
+    -- Restore original FriendAmount
+    if originalFriendAmount then
+        Player.FriendAmount.Value = originalFriendAmount
+        originalFriendAmount = nil
+        notifyUser("Info", "Friend Amount Restored!", 2)
+    end
+    -- Deactivate NoClip
+    if noclipActivatedInGeminiMode then
+        deactivateNoClip()
+        noclipActivatedInGeminiMode = false
+        -- Update noClipToggle text
+        noClipToggle.text = "NoClip (Deactivated)"
+		noClipToggle.state = false
+		--noClipToggle:UpdateState()
+	end
+    notifyUser("We're good.", "Back to fully normal, all changes reversed.", 5)
+    geminiModeToggle.Text = "Activate Gemini Mode"
+end
+-- Snipe Mode variables -- Snipe Mode variables
+local isSnipeModeActive = false 
+local snipeModeConnection = nil 
+local failedAttempts = 0  -- Counter to track failed attempts 
+local maxFailedAttempts = 500  -- Maximum allowed failed attempts before Snipe Mode is deactivated 
+local snipeCooldown = 1  -- Cooldown duration in seconds 
+local priorityOrder = {"Mystery", "Gem", "Chest", "Coal", "Iron", "Copper"}
+function executeSnipeMode()
+    isSnipeModeActive = not isSnipeModeActive
+    if isSnipeModeActive then 
+        snipeModeToggle.text = "Stop Snipe Mode"
+        notifyUser("Snipe Mode", "Snipe Mode Activated!", 3)
+        notifyUser("Snipe Mode", "Starting snipe loop...", 2)
+        snipeModeConnection = game:GetService("RunService").Heartbeat:Connect(function()
+            local foundBlock = false 
+            wait(0.3)  -- This will make it try approximately 3 times a second
+            local blocks = getAllBlocks()  -- Retrieve all blocks
+            local targetBlock = nil
+            local shortestDistance = math.huge
+            local PlayerPosition = game.Workspace.CurrentCamera.CFrame.Position
+            for _, block in ipairs(blocks) do
+                if string.match(block.Name, blockPattern) then  -- Check if block matches our pattern
+                    local distance = (block.Position - PlayerPosition).Magnitude
+                    local _, _, isTopOpen, _ = checkSurroundings(block)
+                    if distance < shortestDistance and isTopOpen and isTopSpaceEmpty(block) and block:IsDescendantOf(game.Workspace) then
+                        shortestDistance = distance
+                        targetBlock = block
+                    end
+                end 
+            end
+            if targetBlock then
+                local teleportPosition = getSafeTeleportPosition(targetBlock.Position) 
+                Player.Character.HumanoidRootPart.CFrame = CFrame.new(teleportPosition)
+                foundBlock = true
+                failedAttempts = 0  -- Reset failed attempts counter
+                notifyUser("Snipe Mode", "Teleported to block: " .. targetBlock.Name, 2)
+                wait(0.05)
+            else 
+                failedAttempts = failedAttempts + 1
+                if failedAttempts >= maxFailedAttempts then 
+                    snipeModeToggle.text = "Snipe Mode"
+                    notifyUser("Snipe Mode", "Maximum failed attempts reached. Stopping Snipe Mode.", 3)
+                    isSnipeModeActive = false
+                    if snipeModeConnection then 
+                        snipeModeConnection:Disconnect()
+                        snipeModeConnection = nil
+                    end 
+                end 
+            end 
+        end) 
+    else 
+        if snipeModeConnection then 
+            snipeModeConnection:Disconnect()
+            snipeModeConnection = nil
+        end 
+        snipeModeToggle.text = "Snipe Mode"
+        notifyUser("Snipe Mode", "Snipe Mode Deactivated!", 3)
+    end 
+end
 --spawn(checkIfStuck)
 Library:Init()
+print("Script initialization completed.")  -- Added print statement

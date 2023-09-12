@@ -961,17 +961,14 @@ function deactivateNoClip()
     wait(0.1)  -- Add a small delay to ensure the noclip loop has ceased
     if Players.LocalPlayer.Character then
         for _, child in pairs(Players.LocalPlayer.Character:GetDescendants()) do
-            if child:IsA("BasePart") then
-                if originalCollideStates[child] then
-                    child.CanCollide = originalCollideStates[child]
-                    originalCollideStates[child] = nil  -- Clear the stored state
-                else
-                    child.CanCollide = true  -- Default to true if we don't have an original state
-                end
+            if child:IsA("BasePart") and originalCollideStates[child] then
+                child.CanCollide = originalCollideStates[child]
+                originalCollideStates[child] = nil  -- Clear the stored state
             end
         end
     end
 end
+
 
 function getSafestBlock()
     -- Define the camera position as the region center
@@ -1264,8 +1261,6 @@ local teleCopperToggle = false
 local teleChestToggle = false
 local autoTeleportToggle = false
 local cpsLabelToggle = false
--- NoClip Button
--- Server Hop Button
 -- Toggle Friend Amount Button
 local toggleFriendAmountToggle = mainSection:AddToggle({
     text = "Toggle Friend Amount",
@@ -1676,21 +1671,45 @@ teleportSection:AddButton({
         teleportToNearestDoor()
     end 
 })
-local resetCollisionToggle = mainSection:AddButton({
-    text = "Reset Collision",
+local resetToDefaultToggle = mainSection:AddButton({
+    text = "Reset Player SlideIssues",
     callback = function()
         local Character = Player.Character
         if Character then
-            -- Iterate over each part in the character
-            for _, part in pairs(Character:GetChildren()) do
-                if part:IsA("BasePart") then
-                    part.CanCollide = true
+            local humanoid = Character:FindFirstChildOfClass("Humanoid")
+            
+            -- 1. Restore CanCollide properties and remove BodyMovers
+            for _, part in pairs(Character:GetDescendants()) do
+                if part:IsA("BasePart") and originalCollideStates[part] then
+                    part.CanCollide = originalCollideStates[part]
+                    originalCollideStates[part] = nil  -- Clear the stored state
+                    part.Anchored = false
+                end
+                
+                if part:IsA("BodyMover") then
+                    part:Destroy()
                 end
             end
-            notifyUser("Info", "Collision values reset to default.", 2)
+            
+            -- 2. Reset Humanoid properties to default
+            if humanoid then
+                humanoid.WalkSpeed = 16
+                humanoid.JumpPower = 50
+                humanoid.Health = humanoid.MaxHealth
+                humanoid.AutoRotate = true
+                humanoid.AutoJumpEnabled = true
+                humanoid.Jump = false
+            end
+
+            -- 3. Reset Appearance (Optional, as this requires a more complex function)
+            -- resetAppearance(Player)
+
+            notifyUser("Info", "All values restored to default state.", 2)
         end
     end
 })
+
+
 userInputService.InputBegan:Connect(function(input, isProcessed)
     if awaitingCpsInput and not isProcessed then
         if input.KeyCode.Name:match("Number%d") then
@@ -1724,7 +1743,7 @@ function EnableGeminiMode()
         end)
         notifyUser("Info", "Infinite Jumps Enabled!", 2)
 		flyJumpToggle.state = true
-		flyJumpToggle:UpdateState()
+		--flyJumpToggle:UpdateState()
 	end
     -- Toggle Super Speed on when Gemini Mode is activated
     if not superSpeedEnabled then
@@ -1732,7 +1751,7 @@ function EnableGeminiMode()
         notifyUser("Info", "Super Speed Enabled!", 2)
         superSpeedEnabled = true
 		superSpeedToggle.state = true
-		superSpeedToggle:UpdateState()
+		--superSpeedToggle:UpdateState()
     end
     clientantikick()
     notifyUser("Info", "Anti-Kick Enabled!", 2)
@@ -1758,7 +1777,7 @@ function EnableGeminiMode()
         -- Update noClipToggle text
         noClipToggle.text = "NoClip (Activated)"
 		noClipToggle.state = true
-		noClipToggle:UpdateState()
+		--noClipToggle:UpdateState()
 	end
     removeterrain()
     notifyUser("Info", "Some bad Terrain Removed!", 2)
@@ -1777,14 +1796,14 @@ function DisableGeminiMode()
         notifyUser("Info", "Flying Jump Disabled!", 2)
 		flyJumpToggle.text = "Fly Jump (Deactivated)"
 		flyJumpToggle.state = false
-		flyJumpToggle:UpdateState()
+		--flyJumpToggle:UpdateState()
     end
     -- Reset WalkSpeed
     Player.Character.Humanoid.WalkSpeed = normalSpeed
     notifyUser("Info", "WalkSpeed reset to normal!", 2)
 	superSpeedToggle.text = "Super Speed (Deactivated)"
 	superSpeedToggle.state = false
-	superSpeedToggle:UpdateState()
+	--superSpeedToggle:UpdateState()
     -- Remove flare effect
     removeFlare()
     notifyUser("Info", "Flare effect removed!", 2)
@@ -1806,7 +1825,7 @@ function DisableGeminiMode()
         --Update noClipToggle text
         noClipToggle.text = "NoClip (Deactivated)"
 		noClipToggle.state = false
-		noClipToggle:UpdateState()
+		--noClipToggle:UpdateState()
 	end
     notifyUser("We're good.", "Back to fully normal, all changes reversed.", 5)
     geminiModeToggle.Text = "Activate Gemini Mode"

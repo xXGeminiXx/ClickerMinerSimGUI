@@ -1,8 +1,53 @@
--- GeminisClickerMinerSim Version 13 --
+-- GeminisClickerMinerSim Version 14--
 -- Introduced new gui using Uwuware.lua --
 -- All credits to that GUI lib go to the original developer --
 -- Created by xXGeminiXx --
 print('Library Initialization Started...')
+local menuItems = {
+    removeObject = false,
+    serverHop = false,
+    flyJump = false,
+    superSpeed = false,
+    noClip = false,
+    teleMystery = false,
+    teleCoal = false,
+    teleIron = false,
+    teleGem = false,
+    teleChest = false,
+    teleCopper = false,
+    autoMineGems = false,
+    teleSpecialBlock = false,
+    cpsLabel = false,
+    toggleFriendAmount = false,
+    snipeMode = false,
+    geminiMode = false,
+}
+
+-- Your code for creating buttons and toggles...
+
+
+local function saveConfigurations()
+    local configData = ""
+    for key, value in pairs(menuItems) do
+        configData = configData .. key .. "=" .. tostring(value) .. "\n"
+    end
+    writefile("GeminiClickerMenuConfig.txt", configData)
+	print('Saving Configuration')
+end
+local function loadConfigurations()
+    if isfile("GeminiClickerMenuConfig.txt") then
+        local configData = readfile("GeminiClickerMenuConfig.txt")
+        for line in configData:gmatch("[^\n]+") do
+            local key, value = line:match("([^=]+)=(.*)")
+            if key and value then
+                menuItems[key] = (value == "true")
+				print('Configuration Loaded')
+            end
+        end
+    end
+end
+loadConfigurations()
+print('Loaded Saved Configuration')
 local isChestTeleporting = false
 local lastTeleportTime = 0
 local isGemTeleporting = false
@@ -79,7 +124,7 @@ local blockTypes = {
 local blockPattern = "^(?:Chest\\d+_\\d+|Copper\\d+_\\d+|Iron\\d+_\\d+|Coal\\d+_\\d+|Gem\\d+_\\d+|Mystery\\d+_\\d+|M\\d+_\\d+|EasterEgg\\d+_\\d+)$"
 cameraCFrame = cameraCFrame or game.Workspace.CurrentCamera.CFrame
 local regionCenter = cameraCFrame.Position
-local region3 = Region3.new(regionCenter - Vector3.new(50, 75, 50), regionCenter + Vector3.new(50, 25, 50))
+local region3 = Region3.new(regionCenter - Vector3.new(100, 50, 100), regionCenter + Vector3.new(100, 50, 100))
 local prop = Player:FindFirstChild("FriendAmount")
 local Clip = false -- Or true, based on the default state you want
 local userInputService = game:GetService("UserInputService")
@@ -111,8 +156,10 @@ local namesList = {
     "shenzi", "sanjiao", 
     "shugan", "shuzhi", "shuijing", "snow", "shideng", "sha01", "sweet", "weilan",
     "stree", "stone", "stoen", "small_light", "stones", "Stones",
+	"qiandui", "xiaoqiandi",
 	"tree", "xiaotree", "TopL", "totally not a stolen mesh",
-    "Wall", "wall"
+    "Wall", "wall", "zs", "ZLPP_Plant_L_2", "Mesh/CoinBag", "bone", "Box033", "huangjin", "FBXImportGeneric",
+	"Chest of Tix", "dalong", "jian", "kuangshi00", "kuangshi01", "weiba"
 }
 while not Player.Character do wait() end
 while not Player.PlayerGui do wait() end
@@ -274,6 +321,12 @@ local function removeObjectsByName(namesToRemove, startingPoint)
         --wait(0.2)  -- Reducing wait time to speed up the function
     end
 end
+local function isSpaceAboveEmpty(Position)
+    local rayLength = 3
+    local ray = Ray.new(Position, Vector3.new(0, 1, 0) * rayLength)  -- Pointing the ray upwards for 3 units
+    local block, _ = game.Workspace:FindPartOnRayWithIgnoreList(ray, {Player.Character})
+    return not block
+end
 local lastTeleportTime = 0 -- Initialize with a default value
 function canTeleportAgain()
     local currentTime = tick()
@@ -312,6 +365,7 @@ function getSafeNearbyBlock(currentPos)
     notifyUser("Info", "No safe nearby blocks found.", 3)
     return nil
 end
+
 local Player = game.Players.LocalPlayer
 -- Enhanced checkIfStuck function
 -- This function checks if the player's position has remained unchanged over a period of time.
@@ -359,12 +413,14 @@ local function toggleFlyJump()
             flyjump = nil
         end
         flyjumpActive = false
+		saveConfigurations()
         customNotifyUser("Gemini Mode", "Fly Jump Disabled!", 2)
     else
         flyjump = game:GetService("UserInputService").JumpRequest:Connect(function()
             Player.Character:FindFirstChildWhichIsA("Humanoid"):ChangeState(Enum.HumanoidStateType.Jumping)
         end)
         flyjumpActive = true
+		saveConfigurations()
         customNotifyUser("Gemini Mode", "Fly Jump Enabled!", 2)
     end
 end
@@ -385,7 +441,7 @@ local function findNearestIron()
     local closestDistance = math.huge
     local closestIron = nil
     local regionCenter = camera.CFrame.Position
-    local region3 = Region3.new(regionCenter - Vector3.new(1000, 1500, 1000), regionCenter + Vector3.new(1000, 500, 1000))
+    local region3 = Region3.new(regionCenter - Vector3.new(100, 50, 100), regionCenter + Vector3.new(100, 50, 100))
     local partsInRegion = workspace:FindPartsInRegion3(region3, nil, math.huge)
     local ironBlocksFound = 0
     local rejectedBlocks = 0
@@ -457,12 +513,7 @@ local function isEmptyConsideringDepth(Position)
     end
     return not block
 end
-local function isSpaceAboveEmpty(Position)
-    local rayLength = 3
-    local ray = Ray.new(Position, Vector3.new(0, 1, 0) * rayLength)  -- Pointing the ray upwards for 3 units
-    local block, _ = game.Workspace:FindPartOnRayWithIgnoreList(ray, {Player.Character})
-    return not block
-end
+
 
 -- Returns the nearest copper to the camera's position with an open space above
 local function findNearestCopper()
@@ -470,7 +521,7 @@ local function findNearestCopper()
     local closestDistance = math.huge
     local closestCopper = nil
     local regionCenter = camera.CFrame.Position
-    local region3 = Region3.new(regionCenter - Vector3.new(1000, 1500, 1000), regionCenter + Vector3.new(1000, 500, 1000))
+    local region3 = Region3.new(regionCenter - Vector3.new(100, 50, 100), regionCenter + Vector3.new(100, 50, 100))
     local partsInRegion = workspace:FindPartsInRegion3(region3, nil, math.huge)
     local copperBlocksFound = 0
     local rejectedBlocks = 0
@@ -509,7 +560,7 @@ local function findNearestGem()
     local closestDistance = math.huge
     local closestGem = nil
     local regionCenter = camera.CFrame.Position
-    local region3 = Region3.new(regionCenter - Vector3.new(1000, 1500, 1000), regionCenter + Vector3.new(1000, 500, 1000))
+    local region3 = Region3.new(regionCenter - Vector3.new(100, 50, 100), regionCenter + Vector3.new(100, 50, 100))
     local partsInRegion = workspace:FindPartsInRegion3(region3, nil, math.huge)
     local gemBlocksFound = 0
     local rejectedBlocks = 0
@@ -589,7 +640,8 @@ local function findNearestMystery()
     local closestDistance = math.huge
     local closestMystery = nil
     local regionCenter = camera.CFrame.Position
-    local region3 = Region3.new(regionCenter - Vector3.new(1000, 1500, 1000), regionCenter + Vector3.new(1000, 500, 1000))
+    --local region3 = Region3.new(Vector3.new(-49.146091, -15164.038086, -179.665771), Vector3.new(44.913597, -15404.351562, -86.326508))
+	local region3 = Region3.new(regionCenter - Vector3.new(100, 50, 100), regionCenter + Vector3.new(100, 50, 100))
     local partsInRegion = workspace:FindPartsInRegion3(region3, nil, math.huge)
     local mysteryBlocksFound = 0
     local rejectedBlocks = 0
@@ -598,6 +650,9 @@ local function findNearestMystery()
     local priority1Blocks = {}  -- Blocks with direct open space above
     local priority2Blocks = {}  -- Blocks with open space 2 units above
     local priority3Blocks = {}  -- Blocks with open space 3 units above
+    local priority4Blocks = {}  -- Blocks with open space in any cardinal direction
+    
+    local cardinal_directions = {Vector3.new(1, 0, 0), Vector3.new(-1, 0, 0), Vector3.new(0, 0, 1), Vector3.new(0, 0, -1)}
     
     for _, obj in ipairs(partsInRegion) do
         if isMysteryBlock(obj) then
@@ -610,7 +665,17 @@ local function findNearestMystery()
                 elseif isSpaceAboveEmpty(obj.Position + Vector3.new(0, obj.Size.Y*3, 0)) then
                     table.insert(priority3Blocks, obj)
                 else
-                    rejectedBlocks = rejectedBlocks + 1
+                    local foundCardinalOpenSpace = false
+                    for _, direction in ipairs(cardinal_directions) do
+                        if isSpaceAboveEmpty(obj.Position + direction) then
+                            table.insert(priority4Blocks, obj)
+                            foundCardinalOpenSpace = true
+                            break
+                        end
+                    end
+                    if not foundCardinalOpenSpace then
+                        rejectedBlocks = rejectedBlocks + 1
+                    end
                 end
             end
         end
@@ -634,21 +699,18 @@ local function findNearestMystery()
     if not closestMystery then
         findClosest(priority3Blocks)
     end
+    if not closestMystery then
+        findClosest(priority4Blocks)
+    end
     
     if not closestMystery then
         if mysteryBlocksFound == 0 then
-            --notifyUser("Info", "No mystery blocks found in the search region.", .3)
-			--print("Info: No mystery blocks found in the search region.")
-
+            print("Info: No mystery blocks found in the search region.")
         else
-            --notifyUser("Info", "Found " .. mysteryBlocksFound .. " mystery blocks, but " .. rejectedBlocks .. " were rejected due to checks.", .3)
-			--print("Info: Found " .. mysteryBlocksFound .. " mystery blocks, but " .. rejectedBlocks .. " were rejected due to checks.")
-
+            print("Info: Found " .. mysteryBlocksFound .. " mystery blocks, but " .. rejectedBlocks .. " were rejected due to checks.")
         end
     else
-        notifyUser("Success", "Teleporting to a valid mystery block.", .1)
-		--print("Success: Teleporting to a valid mystery block.")
-
+        print("Success: Teleporting to a valid mystery block.")
     end
     return closestMystery
 end
@@ -659,7 +721,7 @@ local function findNearestChest()
     local closestDistance = math.huge
     local closestChest = nil
     local regionCenter = camera.CFrame.Position
-    local region3 = Region3.new(regionCenter - Vector3.new(1000, 1500, 1000), regionCenter + Vector3.new(1000, 500, 1000))
+    local region3 = Region3.new(regionCenter - Vector3.new(100, 50, 100), regionCenter + Vector3.new(100, 50, 100))
     local partsInRegion = workspace:FindPartsInRegion3(region3, nil, math.huge)
     local chestBlocksFound = 0
     local rejectedBlocks = 0
@@ -698,7 +760,7 @@ local function findNearestCoal()
     local closestDistance = 50
     local closestCoal = nil
     local teleportPosition = nil
-    local regionSize = Vector3.new(1000, 1000, 1000)
+    local regionSize = Vector3.new(100, 50, 100)
     local regionCenter = cameraCFrame.Position
     local region3 = Region3.new(regionCenter - regionSize / 2, regionCenter + regionSize / 2)
     local partsInRegion = workspace:FindPartsInRegion3(region3, nil, math.huge)
@@ -974,7 +1036,7 @@ function getSafestBlock()
     -- Define the camera position as the region center
     local regionCenter = workspace.CurrentCamera.CFrame.Position
     -- Define the search region based on the camera position
-    local region3 = Region3.new(regionCenter - Vector3.new(1000, 1500, 1000), regionCenter + Vector3.new(1000, 500, 1000))
+    local region3 = Region3.new(regionCenter - Vector3.new(100, 50, 100), regionCenter + Vector3.new(100, 50, 100))
     -- Find all parts within the defined region
     local partsInRegion = workspace:FindPartsInRegion3(region3, nil, math.huge)
     -- Filter out only the mystery blocks
@@ -1275,18 +1337,22 @@ local toggleFriendAmountToggle = mainSection:AddToggle({
                 prop.Value = originalFriendAmount
                 notifyUser("Info", "Friend Amount Reset", 2)
             end
+            menuItems.toggleFriendAmount = state
+            saveConfigurations()
         end
     end
 })
-
 -- Snipe Mode Button
 local snipeModeToggle = mainSection:AddToggle({
     text = "Snipe Mode",
-	textColor = Color3.new(0, 128, 255),       -- Text Color
+    textColor = Color3.new(0, 128, 255),
     callback = function(state)
         executeSnipeMode()
+        menuItems.snipeMode = state
+        saveConfigurations()
     end
 })
+
 -- Gemini Mode Button
 local geminiModeToggle = mainSection:AddToggle({
     text = "Gemini Mode",
@@ -1301,43 +1367,46 @@ local geminiModeToggle = mainSection:AddToggle({
             DisableGeminiMode()
             notifyUser("Gemini Mode Disabled", "Advanced features are now turned off.", 2)
         end
-    end,
+        menuItems.geminiMode = state
+        saveConfigurations()
+    end
 })
 -- Remove Objects Button
 local removeObjectBtn = mainSection:AddButton({ 
     text = "Remove Objects", 
     callback = function()
         print("Button Callback Triggered...")
-        -- Ensure removeObjectBtn is initialized
-        if not removeObjectBtn then return end
-        if not removeObjectsToggle then
-            removeObjectsByName(namesList)
-        end
+        
+        removeObjectsByName(namesList)
         removeObjectsToggle = not removeObjectsToggle
-        removeObjectBtn.text = removeObjectsToggle and "Stop Removing Objects" or "Remove Objects"
+        menuItems["removeObjectToggle"] = removeObjectsToggle
+        -- Commented out the problematic line:
+        -- removeObjectBtn.text = removeObjectsToggle and "Stop Removing Objects" or "Remove Objects"
+        print("Current removeObjectToggle value: ", removeObjectsToggle)  -- For debugging
+        saveConfigurations()
     end 
 })
 local serverHopBtn = mainSection:AddButton({ 
     text = "Server Hop", 
     callback = function()
         print("Button Callback Triggered...")
-        -- Ensure the serverHopBtn is initialized
-        -- if not serverHopBtn then return end
         if not serverHopToggle then
             serverhop()
         end
         serverHopToggle = not serverHopToggle
+        menuItems["serverHopToggle"] = serverHopToggle
         serverHopBtn.text = serverHopToggle and "Stop Server Hop" or "Server Hop"
+        saveConfigurations()
     end 
 })
--- Fly Jump Button
+
 local flyJumpToggle = movementSection:AddToggle({
     text = "Fly Jump",
     callback = function(state)
         if state then
             if not flyJumpActive then
                 flyJumpActive = true
-				callback = toggleFlyJump
+                callback = toggleFlyJump
                 customNotifyUser("Gemini Mode", "Fly Jump Enabled!", 2)
             end
         else
@@ -1350,9 +1419,11 @@ local flyJumpToggle = movementSection:AddToggle({
                 customNotifyUser("Gemini Mode", "Fly Jump Disabled!", 2)
             end
         end
+        menuItems["flyJumpToggle"] = state
+        saveConfigurations()
     end
 })
--- Super Speed Button
+
 local superSpeedToggle = movementSection:AddToggle({
     text = "Super Speed",
     callback = function(state)
@@ -1363,8 +1434,11 @@ local superSpeedToggle = movementSection:AddToggle({
             Player.Character.Humanoid.WalkSpeed = normalSpeed
             customNotifyUser("Info", "Super Speed Disabled!", 3)
         end
+        menuItems["superSpeedToggle"] = state
+        saveConfigurations()
     end
 })
+
 local noClipToggle = movementSection:AddToggle({
     text = "NoClip",
     callback = function(state)
@@ -1375,10 +1449,13 @@ local noClipToggle = movementSection:AddToggle({
             deactivateNoClip()
             notifyUser("Info", "NoClip Disabled!", 2)
         end
+        menuItems["noClipToggle"] = state
+        saveConfigurations()
     end
 })
+
 local function getSafeTeleportPosition(targetPosition)
-    local possible_offsets = {Vector3.new(0, 1, 0), Vector3.new(0, 2, 0), Vector3.new(0, 3, 0)}
+    local possible_offsets = {Vector3.new(0, 1, 0), Vector3.new(0, 2, 0), Vector3.new(0, 3, 0), Vector3.new(0, 4, 0), Vector3.new(0, 5, 0)}
     for _, offset in ipairs(possible_offsets) do
         local checkPosition = targetPosition + offset
         if isSpaceAboveEmpty(checkPosition) then
@@ -1393,9 +1470,12 @@ end
 -- It introduces regular up and down movements to ensure the player is constantly moving while mining.
 -- The waiting time between teleports has been reduced for a faster operation.
 
+-- Enhanced Teleport to Mystery Block Button
 local teleMysteryToggle = teleportSection:AddToggle({
     text = "Tele Mystery",
     callback = function(state)
+        menuItems["teleMysteryToggle"] = state
+        saveConfigurations()
         if state then
             isMysteryTeleporting = true
             while isMysteryTeleporting do
@@ -1406,39 +1486,34 @@ local teleMysteryToggle = teleportSection:AddToggle({
                         if safePosition then
                             Player.Character.HumanoidRootPart.CFrame = CFrame.new(safePosition)
                             lastTeleportTime = tick()
-                            
+
                             -- Check if the player is stuck after teleporting
                             if checkIfStuck() then
                                 notifyUser("Warning", "Player seems to be stuck. Trying to recover.", 3)
                                 -- Recovery logic can be added here
                             end
-                            
-                            -- Introduce regular up and down movements for continuous motion
-                            --Player.Character.HumanoidRootPart.CFrame = Player.Character.HumanoidRootPart.CFrame + Vector3.new(0, 5, 0)
-                            --wait(0.5)  -- Reduced waiting time
-                            --Player.Character.HumanoidRootPart.CFrame = Player.Character.HumanoidRootPart.CFrame - Vector3.new(0, 5, 0)
-                            
                         else
-                            --notifyUser("Error", "Couldn't find a safe teleport Position.", .3)
-							--print("Error: Couldn't find a safe teleport Position.")
-
+                            notifyUser("Error", "Couldn't find a safe teleport Position.", .2)
+                            print("Error: Couldn't find a safe teleport Position.")
                         end
                     else
-                        --notifyUser("Error", "No safe mystery block found.", .3)
-						--print("Error: No safe mystery block found.")
+                        notifyUser("Error", "No safe mystery block found.", .2)
+                        print("Error: No safe mystery block found.")
                     end
                 end
             end
         else
             isMysteryTeleporting = false
         end
-    end 
+    end
 })
 
 -- Enhanced Teleport to Coal Block Button
 local teleCoalToggle = teleportSection:AddToggle({
     text = "Tele Coal",
     callback = function(state)
+        menuItems["teleCoalToggle"] = state
+        saveConfigurations()
         if state then
             isCoalTeleporting = true
             while isCoalTeleporting do
@@ -1464,11 +1539,12 @@ local teleCoalToggle = teleportSection:AddToggle({
     end
 })
 
-
 -- Enhanced Teleport to Iron Block Button
 local teleIronToggle = teleportSection:AddToggle({
     text = "Tele Iron",
     callback = function(state)
+        menuItems["teleIronToggle"] = state
+        saveConfigurations()
         if state then
             isIronTeleporting = true
             while isIronTeleporting do
@@ -1497,6 +1573,8 @@ local teleIronToggle = teleportSection:AddToggle({
 local teleGemToggle = teleportSection:AddToggle({
     text = "Tele Gem",
     callback = function(state)
+        menuItems["teleGemToggle"] = state
+        saveConfigurations()
         if state then
             isGemTeleporting = true
             while isGemTeleporting do
@@ -1507,11 +1585,14 @@ local teleGemToggle = teleportSection:AddToggle({
                         if safePosition then
                             Player.Character.HumanoidRootPart.CFrame = CFrame.new(safePosition)
                             lastTeleportTime = tick()
+                            saveConfigurations()
                         else
                             print("Error: Couldn't find a safe teleport Position.")
+                            saveConfigurations()
                         end
                     else
                         print("Error: No safe gem block found.")
+                        saveConfigurations()
                     end
                 end
                 wait(1)
@@ -1521,10 +1602,13 @@ local teleGemToggle = teleportSection:AddToggle({
         end
     end
 })
+
 -- Enhanced Teleport to Chest Block Button
 local teleChestToggle = teleportSection:AddToggle({
     text = "Tele Chest",
     callback = function(state)
+        menuItems["teleChestToggle"] = state
+        saveConfigurations()
         if state then
             isChestTeleporting = true
             while isChestTeleporting do
@@ -1535,11 +1619,14 @@ local teleChestToggle = teleportSection:AddToggle({
                         if safePosition then
                             Player.Character.HumanoidRootPart.CFrame = CFrame.new(safePosition)
                             lastTeleportTime = tick()
+                            saveConfigurations()
                         else
                             print("Error: Couldn't find a safe teleport Position.")
+                            saveConfigurations()
                         end
                     else
                         print("Error: No safe chest block found.")
+                        saveConfigurations()
                     end
                 end
                 wait(1)
@@ -1549,10 +1636,13 @@ local teleChestToggle = teleportSection:AddToggle({
         end
     end
 })
+
 -- Enhanced Teleport to Copper Block Button
 local teleCopperToggle = teleportSection:AddToggle({
     text = "Tele Copper",
     callback = function(state)
+        menuItems["teleCopperToggle"] = state
+        saveConfigurations()
         if state then
             isCopperTeleporting = true
             while isCopperTeleporting do
@@ -1563,11 +1653,14 @@ local teleCopperToggle = teleportSection:AddToggle({
                         if safePosition then
                             Player.Character.HumanoidRootPart.CFrame = CFrame.new(safePosition)
                             lastTeleportTime = tick()
+                            saveConfigurations()
                         else
                             print("Error: Couldn't find a safe teleport Position.")
+                            saveConfigurations()
                         end
                     else
                         print("Error: No safe copper block found.")
+                        saveConfigurations()
                     end
                 end
                 wait(1)
@@ -1577,10 +1670,13 @@ local teleCopperToggle = teleportSection:AddToggle({
         end
     end
 })
+
 -- Auto-Mine Gems Toggle Button
 local autoMineGemsToggle = teleportSection:AddToggle({
     text = "Auto Mine Gems",
     callback = function(state)
+        menuItems["autoMineGemsToggle"] = state
+        saveConfigurations()
         if state then
             autoMineGemsConnection = game:GetService("RunService").Heartbeat:Connect(function()
                 if not lastTeleportedBlock or checkBlockMined(lastTeleportedBlock) then
@@ -1593,21 +1689,26 @@ local autoMineGemsToggle = teleportSection:AddToggle({
                             lastTeleportTime = tick()
                             lastTeleportedBlock = gemBlock
                             notifyUser("Auto Mine Gems", "Teleported to Gem: " .. gemBlock.Name, 2)
+                            saveConfigurations()
                         else
                             notifyUser("Error", "Couldn't find a safe teleport Position for auto-mine.", 3)
+                            saveConfigurations()
                         end
                     else
                         notifyUser("Error", "No safe gem block found for auto-mine.", 3)
+                        saveConfigurations()
                     end
                 end
             end)
             notifyUser("Info", "Auto-Mining Gems Enabled!", 3)
+            saveConfigurations()
         else
             if autoMineGemsConnection then
                 autoMineGemsConnection:Disconnect()
                 autoMineGemsConnection = nil
             end
             notifyUser("Info", "Auto-Mining Gems Disabled!", 3)
+            saveConfigurations()
         end
     end
 })
@@ -1615,6 +1716,8 @@ local autoMineGemsToggle = teleportSection:AddToggle({
 local teleSpecialBlockToggle = teleportSection:AddToggle({
     text = "Tele Special Block",
     callback = function(state)
+        menuItems["teleSpecialBlockToggle"] = state  -- Update the state in the menuItems table
+        saveConfigurations()  -- Save after updating the menuItems table
         if state then
             isSpecialBlockTeleporting = true
             while isSpecialBlockTeleporting do
@@ -1625,11 +1728,14 @@ local teleSpecialBlockToggle = teleportSection:AddToggle({
                         if safePosition then
                             Player.Character.HumanoidRootPart.CFrame = CFrame.new(safePosition)
                             lastTeleportTime = tick()
+                            saveConfigurations()
                         else
                             print("Error: Couldn't find a safe teleport Position.")
+                            saveConfigurations()
                         end
                     else
                         print("Error: No safe special block found.")
+                        saveConfigurations()
                     end
                 end
                 wait(1)
@@ -1639,16 +1745,21 @@ local teleSpecialBlockToggle = teleportSection:AddToggle({
         end
     end
 })
-local cpsLabelToggle = false
+
+-- CPS Label Toggle Button
 local cpsLabelToggle = testingSection:AddToggle({
     text = "CPS Label",
     callback = function(state)
+        menuItems["cpsLabelToggle"] = state
+        saveConfigurations()
         if state then
             cps = tonumber(cpsInputBox.text) or 7  -- Fetch CPS rate from input box; default to 7 if invalid
             autoMine(cps)
             cpsLabel.Text = "CPS: " .. cps
+            saveConfigurations()
         else
             cpsLabel.Text = "Stop CPS"
+            saveConfigurations()
         end
     end
 })
@@ -1830,6 +1941,8 @@ function DisableGeminiMode()
     notifyUser("We're good.", "Back to fully normal, all changes reversed.", 5)
     geminiModeToggle.Text = "Activate Gemini Mode"
 end
+
+loadConfigurations()
 
 -- Snipe Mode variables -- Snipe Mode variables
 local isSnipeModeActive = false 
